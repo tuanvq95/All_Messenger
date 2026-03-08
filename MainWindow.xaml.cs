@@ -1,6 +1,10 @@
+﻿using Microsoft.UI;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Windows.Storage;
+using WinRT.Interop;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -12,16 +16,23 @@ namespace All_Messenger
     /// </summary>
     public sealed partial class MainWindow : Window
     {
+        private const string ThemeKey = "AppTheme";
+
         public MainWindow()
         {
             this.InitializeComponent();
+
+            string theme = LoadTheme();
+            ApplyTheme(theme);
+
             ContentFrame.Navigate(typeof(Pages.MessengerPage));
-            TrySetMicaBackdrop();
+            this.SystemBackdrop = new MicaBackdrop();
         }
 
-        private void TrySetMicaBackdrop()
+        private void Reload_Click(object sender, RoutedEventArgs e)
         {
-            this.SystemBackdrop = new MicaBackdrop();
+            // Ví dụ reload frame
+            ContentFrame.Navigate(ContentFrame.CurrentSourcePageType);
         }
 
         private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -46,5 +57,95 @@ namespace All_Messenger
                 }
             }
         }
+
+        #region Theme
+        private void SaveTheme(string theme)
+        {
+            ApplicationData.Current.LocalSettings.Values[ThemeKey] = theme;
+        }
+
+        private string LoadTheme()
+        {
+            var settings = ApplicationData.Current.LocalSettings.Values;
+
+            if (settings.ContainsKey(ThemeKey))
+                return settings[ThemeKey]?.ToString();
+
+            return "System";
+        }
+
+        private void ApplyTheme(string theme)
+        {
+            switch (theme)
+            {
+                case "Dark":
+                    DarkModeToggle.IsChecked = true;
+                    ((FrameworkElement)Content).RequestedTheme = ElementTheme.Dark;
+                    ThemeIcon.Glyph = "\uE708";
+                    ApplyTitleBarTheme(true);
+                    break;
+
+                case "Light":
+                    ((FrameworkElement)Content).RequestedTheme = ElementTheme.Light;
+                    ThemeIcon.Glyph = "\uE706";
+                    ApplyTitleBarTheme(false);
+                    break;
+
+                default:
+                    ((FrameworkElement)Content).RequestedTheme = ElementTheme.Default;
+                    ApplyTitleBarTheme(false);
+                    break;
+            }
+        }
+
+        private void DarkMode_Checked(object sender, RoutedEventArgs e)
+        {
+            ThemeIcon.Glyph = "\uF0CE";
+            ((FrameworkElement)Content).RequestedTheme = ElementTheme.Dark;
+
+            SaveTheme("Dark");
+            ApplyTitleBarTheme(true);
+        }
+
+        private void DarkMode_Unchecked(object sender, RoutedEventArgs e)
+        {
+            ThemeIcon.Glyph = "\uF08C"; // Sun
+            ((FrameworkElement)Content).RequestedTheme = ElementTheme.Light;
+
+            SaveTheme("Light");
+            ApplyTitleBarTheme(false);
+        }
+
+        private void ApplyTitleBarTheme(bool isDark)
+        {
+            var hwnd = WindowNative.GetWindowHandle(this);
+            var windowId = Win32Interop.GetWindowIdFromWindow(hwnd);
+            var appWindow = AppWindow.GetFromWindowId(windowId);
+
+            // Hidden title bar default
+            appWindow.TitleBar.ExtendsContentIntoTitleBar = true;
+
+            if (isDark)
+            {
+                appWindow.TitleBar.ButtonForegroundColor = Windows.UI.Color.FromArgb(255, 255, 255, 255);
+                appWindow.TitleBar.ButtonBackgroundColor = Windows.UI.Color.FromArgb(0, 0, 0, 0);
+
+                appWindow.TitleBar.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(50, 255, 255, 255);
+                appWindow.TitleBar.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(90, 255, 255, 255);
+
+                appWindow.TitleBar.ButtonInactiveForegroundColor = Windows.UI.Color.FromArgb(255, 80, 80, 80);
+            }
+            else
+            {
+                appWindow.TitleBar.ButtonForegroundColor = Windows.UI.Color.FromArgb(255, 0, 0, 0);
+                appWindow.TitleBar.ButtonBackgroundColor = Windows.UI.Color.FromArgb(0, 0, 0, 0);
+
+                appWindow.TitleBar.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(30, 0, 0, 0);
+                appWindow.TitleBar.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(60, 0, 0, 0);
+
+                appWindow.TitleBar.ButtonInactiveForegroundColor = Windows.UI.Color.FromArgb(255, 200, 200, 200);
+            }
+        }
+        #endregion
     }
 }
