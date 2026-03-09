@@ -161,6 +161,8 @@ namespace All_Messenger
                     new BitmapImage(new Uri("ms-appx:///Assets/messenger_light.png"));
                 ZaloIcon.Source =
                    new BitmapImage(new Uri("ms-appx:///Assets/zalo_light.png"));
+                TeamsIcon.Source =
+                   new BitmapImage(new Uri("ms-appx:///Assets/teams_light.png"));
             }
             else
             {
@@ -168,6 +170,8 @@ namespace All_Messenger
                     new BitmapImage(new Uri("ms-appx:///Assets/messenger_dark.png"));
                 ZaloIcon.Source =
                     new BitmapImage(new Uri("ms-appx:///Assets/zalo_dark.png"));
+                TeamsIcon.Source =
+                    new BitmapImage(new Uri("ms-appx:///Assets/teams_dark.png"));
             }
         }
         #endregion

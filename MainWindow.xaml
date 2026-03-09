@@ -91,7 +91,7 @@
                 </NavigationViewItem>
                 <NavigationViewItem Content="Teams" Tag="TeamsPage">
                     <NavigationViewItem.Icon>
-                        <ImageIcon Source="Assets/messenger.svg" Width="36" Height="36"/>
+                        <ImageIcon x:Name="TeamsIcon"/>
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.MenuItems>
