@@ -81,12 +81,12 @@
             <NavigationView.MenuItems>
                 <NavigationViewItem Content="Messenger" Tag="MessengerPage">
                     <NavigationViewItem.Icon>
-                        <ImageIcon x:Name="MessengerIcon" Width="32" Height="32" />
+                        <ImageIcon x:Name="MessengerIcon"/>
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem Content="Zalo" Tag="ZaloPage">
                     <NavigationViewItem.Icon>
-                        <PathIcon Data="m41.517,4.5018l-29.011.0354C3.882,11.9372,1.282,21.9552,8.976,36.4482c.4875,1.7082-.359,3.42-1.9992,5.1283,2.3642.3218,4.7693-.1218,6.863-1.266,13.983,6.27,21.919,2.1805,29.644-2.7323l.0355-31.074c.0013-1.1046-.8931-2.001-1.9977-2.0023-.0015,0-.003,0-.0045,0h0Z"/>
+                        <ImageIcon x:Name="ZaloIcon"/>
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem Content="Teams" Tag="TeamsPage">

@@ -159,11 +159,15 @@ namespace All_Messenger
             {
                 MessengerIcon.Source =
                     new BitmapImage(new Uri("ms-appx:///Assets/messenger_light.png"));
+                ZaloIcon.Source =
+                   new BitmapImage(new Uri("ms-appx:///Assets/zalo_light.png"));
             }
             else
             {
                 MessengerIcon.Source =
                     new BitmapImage(new Uri("ms-appx:///Assets/messenger_dark.png"));
+                ZaloIcon.Source =
+                    new BitmapImage(new Uri("ms-appx:///Assets/zalo_dark.png"));
             }
         }
         #endregion
