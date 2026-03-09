@@ -3,6 +3,8 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
+using System;
 using Windows.Storage;
 using WinRT.Interop;
 
@@ -23,6 +25,7 @@ namespace All_Messenger
             this.InitializeComponent();
 
             string theme = LoadTheme();
+            UpdateIcons();
             ApplyTheme(theme);
 
             ContentFrame.Navigate(typeof(Pages.MessengerPage));
@@ -104,6 +107,7 @@ namespace All_Messenger
             ((FrameworkElement)Content).RequestedTheme = ElementTheme.Dark;
 
             SaveTheme("Dark");
+            UpdateIcons();
             ApplyTitleBarTheme(true);
         }
 
@@ -113,6 +117,7 @@ namespace All_Messenger
             ((FrameworkElement)Content).RequestedTheme = ElementTheme.Light;
 
             SaveTheme("Light");
+            UpdateIcons();
             ApplyTitleBarTheme(false);
         }
 
@@ -144,6 +149,21 @@ namespace All_Messenger
                 appWindow.TitleBar.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(60, 0, 0, 0);
 
                 appWindow.TitleBar.ButtonInactiveForegroundColor = Windows.UI.Color.FromArgb(255, 200, 200, 200);
+            }
+        }
+        private void UpdateIcons()
+        {
+            ElementTheme theme = ((FrameworkElement)Content).ActualTheme;
+
+            if (theme == ElementTheme.Dark)
+            {
+                MessengerIcon.Source =
+                    new BitmapImage(new Uri("ms-appx:///Assets/messenger_light.png"));
+            }
+            else
+            {
+                MessengerIcon.Source =
+                    new BitmapImage(new Uri("ms-appx:///Assets/messenger_dark.png"));
             }
         }
         #endregion

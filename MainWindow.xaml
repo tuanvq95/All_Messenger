@@ -43,11 +43,11 @@
 
                     <FontIcon FontFamily="Segoe MDL2 Assets"
                         Glyph="&#xE72C;"
-                        FontSize="16"/> 
+                        FontSize="16"/>
 
                 </Button>
 
-                <ToggleButton x:Name="DarkModeToggle"  
+                <ToggleButton x:Name="DarkModeToggle"
                     Style="{StaticResource TitleBarToggleButtonStyle}"
                     Checked="DarkMode_Checked"
                     Unchecked="DarkMode_Unchecked">
@@ -60,28 +60,28 @@
                 </ToggleButton>
             </StackPanel>
         </Grid>
-        
+
         <NavigationView x:Name="NavView"
                         Margin="0,40,0,0"
                         PaneDisplayMode="Left"
                         IsPaneOpen="False"
-                        OpenPaneLength="240"
-                        CompactPaneLength="64"
+                        OpenPaneLength="180"
+                        CompactPaneLength="48"
                         IsBackButtonVisible="Collapsed"
                         SelectionChanged="NavView_SelectionChanged">
-            
+
             <NavigationView.Resources>
                 <Style TargetType="NavigationViewItem">
-                    <Setter Property="MinHeight" Value="60"/>
+                    <Setter Property="MinHeight" Value="44"/>
                     <!--<Setter Property="Padding" Value="16"/>-->
                     <Setter Property="FontSize" Value="20"/>
                 </Style>
             </NavigationView.Resources>
-            
+
             <NavigationView.MenuItems>
                 <NavigationViewItem Content="Messenger" Tag="MessengerPage">
                     <NavigationViewItem.Icon>
-                        <ImageIcon Source="Assets/messenger.svg" Width="36" Height="36"/>
+                        <ImageIcon x:Name="MessengerIcon" Width="32" Height="32" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem Content="Zalo" Tag="ZaloPage">
