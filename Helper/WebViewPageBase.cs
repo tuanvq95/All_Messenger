@@ -70,12 +70,20 @@ public abstract class WebViewPageBase : Page
         {
             _visibilityHandler = async (s, args) =>
             {
-                if (WebView.CoreWebView2 == null || !_isReady) return;
+                try
+                {
+                    if (WebView.CoreWebView2 == null || !_isReady) return;
 
-                if (!args.Visible)
-                    await WebView.CoreWebView2.TrySuspendAsync();
-                else
-                    WebView.CoreWebView2.Resume();
+                    if (!args.Visible)
+                        await WebView.CoreWebView2.TrySuspendAsync();
+                    else
+                        WebView.CoreWebView2.Resume();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[VisibilityChanged] Exception: {ex.Message}");
+                }
             };
 
             App.MainWindow.VisibilityChanged += _visibilityHandler;

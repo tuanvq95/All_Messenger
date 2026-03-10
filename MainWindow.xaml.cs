@@ -50,12 +50,12 @@ namespace All_Messenger
         private const string AssetTeamsLight = "ms-appx:///Assets/teams_light.png";
         private const string AssetTeamsDark = "ms-appx:///Assets/teams_dark.png";
 
-        private static readonly BitmapImage _messengerLight = new(new Uri(AssetMessengerLight));
-        private static readonly BitmapImage _messengerDark = new(new Uri(AssetMessengerDark));
-        private static readonly BitmapImage _zaloLight = new(new Uri(AssetZaloLight));
-        private static readonly BitmapImage _zaloDark = new(new Uri(AssetZaloDark));
-        private static readonly BitmapImage _teamsLight = new(new Uri(AssetTeamsLight));
-        private static readonly BitmapImage _teamsDark = new(new Uri(AssetTeamsDark));
+        private readonly BitmapImage _messengerLight;
+        private readonly BitmapImage _messengerDark;
+        private readonly BitmapImage _zaloLight;
+        private readonly BitmapImage _zaloDark;
+        private readonly BitmapImage _teamsLight;
+        private readonly BitmapImage _teamsDark;
 
         private Dictionary<string, (FrameworkElement Page, string AppId)> _tabs = null!;
         private string _activeTab = string.Empty;
@@ -63,6 +63,13 @@ namespace All_Messenger
         public MainWindow()
         {
             InitializeComponent();
+
+            _messengerLight = new(new Uri(AssetMessengerLight));
+            _messengerDark  = new(new Uri(AssetMessengerDark));
+            _zaloLight      = new(new Uri(AssetZaloLight));
+            _zaloDark       = new(new Uri(AssetZaloDark));
+            _teamsLight     = new(new Uri(AssetTeamsLight));
+            _teamsDark      = new(new Uri(AssetTeamsDark));
 
             _tabs = new()
             {
