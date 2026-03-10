@@ -43,6 +43,9 @@ public abstract class WebViewPageBase : Page
         // Hook cho page-specific setup (session detector, v.v.)
         OnCoreWebView2Ready(core);
 
+        // Apply app theme vào WebView ngay khi khởi tạo xong
+        ApplyColorSchemeFromCurrentTheme();
+
         core.NavigationCompleted += (s, e) =>
         {
             if (e.IsSuccess) _isReady = true;
@@ -62,8 +65,24 @@ public abstract class WebViewPageBase : Page
         settings.IsBuiltInErrorPageEnabled = false;
     }
 
+    // ── Theme sync ─────────────────────────────────────────────────────────────
+    private void ApplyColorSchemeFromCurrentTheme()
+    {
+        if (WebView.CoreWebView2 is null) return;
+        WebView.CoreWebView2.Profile.PreferredColorScheme = ActualTheme == ElementTheme.Dark
+            ? CoreWebView2PreferredColorScheme.Dark
+            : CoreWebView2PreferredColorScheme.Light;
+    }
+
+    private void OnActualThemeChanged(FrameworkElement sender, object args)
+    {
+        ApplyColorSchemeFromCurrentTheme();
+    }
+
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        ActualThemeChanged += OnActualThemeChanged;
+
         if (App.MainWindow is null) return;
 
         try
@@ -97,6 +116,8 @@ public abstract class WebViewPageBase : Page
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        ActualThemeChanged -= OnActualThemeChanged;
+
         if (App.MainWindow is not null && _visibilityHandler is not null)
             App.MainWindow.VisibilityChanged -= _visibilityHandler;
     }
