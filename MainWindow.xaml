@@ -6,6 +6,7 @@
     xmlns:local="using:All_Messenger"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pages="using:All_Messenger.Pages"
     mc:Ignorable="d"
     Title="All-in-One Messenger">
 
@@ -65,7 +66,7 @@
                         Margin="0,40,0,0"
                         PaneDisplayMode="Left"
                         IsPaneOpen="False"
-                        OpenPaneLength="180"
+                        OpenPaneLength="192"
                         CompactPaneLength="48"
                         IsBackButtonVisible="Collapsed"
                         SelectionChanged="NavView_SelectionChanged">
@@ -73,7 +74,6 @@
             <NavigationView.Resources>
                 <Style TargetType="NavigationViewItem">
                     <Setter Property="MinHeight" Value="44"/>
-                    <!--<Setter Property="Padding" Value="16"/>-->
                     <Setter Property="FontSize" Value="20"/>
                 </Style>
             </NavigationView.Resources>
@@ -96,7 +96,34 @@
                 </NavigationViewItem>
             </NavigationView.MenuItems>
 
-            <Frame x:Name="ContentFrame"/>
+            <Grid>
+                <pages:MessengerPage x:Name="MessengerPage" Visibility="Collapsed"/>
+                <pages:ZaloPage      x:Name="ZaloPage"      Visibility="Collapsed"/>
+                <pages:TeamsPage     x:Name="TeamsPage"     Visibility="Collapsed"/>
+                <pages:SettingPage   x:Name="SettingPage"  Visibility="Collapsed"/>
+
+                <!-- Welcome view — chỉ hiện lần đầu, ẩn sau khi chọn tab -->
+                <Grid x:Name="WelcomeView">
+                    <StackPanel HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="16">
+
+                        <Image Source="ms-appx:///Assets/logo.png"
+                   Width="80" Height="80"
+                   HorizontalAlignment="Center"/>
+
+                        <TextBlock Text="All-in-One Messenger"
+                       FontSize="28"
+                       FontWeight="SemiBold"
+                       HorizontalAlignment="Center"/>
+
+                        <TextBlock Text="Chọn một ứng dụng để bắt đầu"
+                       FontSize="14"
+                       Opacity="0.6"
+                       HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+            </Grid>
         </NavigationView>
     </Grid>
 </Window>

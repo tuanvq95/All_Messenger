@@ -5,11 +5,10 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Windows.Storage;
 using WinRT.Interop;
-
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
 
 namespace All_Messenger
 {
@@ -18,79 +17,188 @@ namespace All_Messenger
     /// </summary>
     public sealed partial class MainWindow : Window
     {
+        private AppWindow _appWindow = null!;
+
+        // ── Theme ────────────────────────────────────────────────────────────────
         private const string ThemeKey = "AppTheme";
+        private const string ThemeDark = "Dark";
+        private const string ThemeLight = "Light";
+        private const string ThemeSystem = "System";
+
+        // ── Glyph ────────────────────────────────────────────────────────────────
+        private const string GlyphMoon = "\uE708";
+        private const string GlyphSun = "\uF08C";
+        private const string GlyphSunAlt = "\uE706";
+        private const string GlyphMoonAlt = "\uF0CE";
+
+        // ── Tab tags (must match NavigationViewItem.Tag in XAML) ─────────────────
+        private const string TabZalo = "ZaloPage";
+        private const string TabTeams = "TeamsPage";
+        private const string TabSettings = "SettingPage";
+        private const string TabMessenger = "MessengerPage";
+
+        // ── App IDs ──────────────────────────────────────────────────────────────
+        private const string AppIdZalo = "Zalo";
+        private const string AppIdTeams = "Teams";
+        private const string AppIdMessenger = "Messenger";
+
+        // ── Assets ───────────────────────────────────────────────────────────────
+        private const string AssetMessengerLight = "ms-appx:///Assets/messenger_light.png";
+        private const string AssetMessengerDark = "ms-appx:///Assets/messenger_dark.png";
+        private const string AssetZaloLight = "ms-appx:///Assets/zalo_light.png";
+        private const string AssetZaloDark = "ms-appx:///Assets/zalo_dark.png";
+        private const string AssetTeamsLight = "ms-appx:///Assets/teams_light.png";
+        private const string AssetTeamsDark = "ms-appx:///Assets/teams_dark.png";
+
+        private static readonly BitmapImage _messengerLight = new(new Uri(AssetMessengerLight));
+        private static readonly BitmapImage _messengerDark = new(new Uri(AssetMessengerDark));
+        private static readonly BitmapImage _zaloLight = new(new Uri(AssetZaloLight));
+        private static readonly BitmapImage _zaloDark = new(new Uri(AssetZaloDark));
+        private static readonly BitmapImage _teamsLight = new(new Uri(AssetTeamsLight));
+        private static readonly BitmapImage _teamsDark = new(new Uri(AssetTeamsDark));
+
+        private Dictionary<string, (FrameworkElement Page, string AppId)> _tabs = null!;
+        private string _activeTab = string.Empty;
 
         public MainWindow()
         {
-            this.InitializeComponent();
+            InitializeComponent();
 
-            string theme = LoadTheme();
+            _tabs = new()
+            {
+                [TabTeams] = (TeamsPage, AppIdTeams),
+                [TabMessenger] = (MessengerPage, AppIdMessenger),
+                [TabZalo] = (ZaloPage, AppIdZalo),
+                [TabSettings] = (SettingPage, string.Empty),
+            };
+
+            var hwnd = WindowNative.GetWindowHandle(this);
+            _appWindow = AppWindow.GetFromWindowId(Win32Interop.GetWindowIdFromWindow(hwnd));
+            _appWindow.TitleBar.ExtendsContentIntoTitleBar = true;
+            _appWindow.Resize(new Windows.Graphics.SizeInt32(1100, 720));
+
+            ApplyTheme(LoadTheme());
             UpdateIcons();
-            ApplyTheme(theme);
-
-            ContentFrame.Navigate(typeof(Pages.MessengerPage));
             this.SystemBackdrop = new MicaBackdrop();
         }
 
         private void Reload_Click(object sender, RoutedEventArgs e)
         {
-            // Ví dụ reload frame
-            ContentFrame.Navigate(ContentFrame.CurrentSourcePageType);
-        }
+            if (string.IsNullOrEmpty(_activeTab)) return;
 
-        private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
-        {
-            if (args.SelectedItem is NavigationViewItem item)
+            if (_tabs.TryGetValue(_activeTab, out var entry))
             {
-                string page = item.Tag.ToString();
-
-                switch (page)
-                {
-                    case "MessengerPage":
-                        ContentFrame.Navigate(typeof(Pages.MessengerPage));
-                        break;
-
-                    case "ZaloPage":
-                        ContentFrame.Navigate(typeof(Pages.ZaloPage));
-                        break;
-
-                    case "TeamsPage":
-                        ContentFrame.Navigate(typeof(Pages.TeamsPage));
-                        break;
-                }
+                var (webView, _) = GetWebViewInfo(entry.AppId);
+                webView?.Reload();
             }
         }
 
+        #region Menu
+        private async void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+        {
+            if (args.IsSettingsSelected)
+            {
+                if (_activeTab == TabSettings) return;
+                await SwitchTab(TabSettings);
+                return;
+            }
+
+            string tag = args.SelectedItem is NavigationViewItem item
+                ? item.Tag?.ToString() ?? string.Empty : string.Empty;
+
+            if (tag == _activeTab) return; // guard: no-op nếu click lại tab đang active
+
+            await SwitchTab(tag);
+        }
+
+        private async Task SwitchTab(string page)
+        {
+            if (WelcomeView.Visibility == Visibility.Visible)
+                WelcomeView.Visibility = Visibility.Collapsed;
+
+            var suspendTasks = new List<Task>();
+
+            foreach (var (tag, (element, appId)) in _tabs)
+            {
+                if (tag == page)
+                {
+                    element.Visibility = Visibility.Visible;
+                    await OnTabShown(appId);
+                }
+                else if (element.Visibility == Visibility.Visible)
+                {
+                    // Chỉ suspend tab đang visible, bỏ qua tab đã collapsed rồi
+                    element.Visibility = Visibility.Collapsed;
+                    suspendTasks.Add(OnTabHidden(appId));
+                }
+            }
+
+            // Suspend song song tất cả tab bị ẩn
+            await Task.WhenAll(suspendTasks);
+            _activeTab = page;
+        }
+
+        private Task OnTabShown(string appId)
+        {
+            var (webView, isReady) = GetWebViewInfo(appId);
+            if (isReady) webView?.CoreWebView2?.Resume();
+            return Task.CompletedTask;
+        }
+
+        private async Task OnTabHidden(string appId)
+        {
+            try
+            {
+                var (webView, isReady) = GetWebViewInfo(appId);
+                if (webView?.CoreWebView2 != null && isReady)
+                {
+                    await webView.CoreWebView2.TrySuspendAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[OnTabHidden] thow Exception: {ex.Message}");
+            }
+        }
+
+        private (WebView2? WebView, bool IsReady) GetWebViewInfo(string appId) => appId switch
+        {
+            AppIdTeams => (TeamsPage.WebView, TeamsPage.IsReady),
+            AppIdMessenger => (null, false),
+            AppIdZalo => (null, false),
+            _ => (null, false)
+        };
+        #endregion
+
         #region Theme
-        private void SaveTheme(string theme)
+        private static void SaveTheme(string theme)
         {
             ApplicationData.Current.LocalSettings.Values[ThemeKey] = theme;
         }
 
-        private string LoadTheme()
+        private static string LoadTheme()
         {
             var settings = ApplicationData.Current.LocalSettings.Values;
-
-            if (settings.ContainsKey(ThemeKey))
-                return settings[ThemeKey]?.ToString();
-
-            return "System";
+            return settings.ContainsKey(ThemeKey)
+                ? settings[ThemeKey]?.ToString() ?? string.Empty
+                : ThemeSystem;
         }
 
         private void ApplyTheme(string theme)
         {
             switch (theme)
             {
-                case "Dark":
+                case ThemeDark:
                     DarkModeToggle.IsChecked = true;
                     ((FrameworkElement)Content).RequestedTheme = ElementTheme.Dark;
-                    ThemeIcon.Glyph = "\uE708";
+                    ThemeIcon.Glyph = GlyphMoon;
                     ApplyTitleBarTheme(true);
                     break;
 
-                case "Light":
+                case ThemeLight:
                     ((FrameworkElement)Content).RequestedTheme = ElementTheme.Light;
-                    ThemeIcon.Glyph = "\uE706";
+                    ThemeIcon.Glyph = GlyphSunAlt;
                     ApplyTitleBarTheme(false);
                     break;
 
@@ -103,52 +211,43 @@ namespace All_Messenger
 
         private void DarkMode_Checked(object sender, RoutedEventArgs e)
         {
-            ThemeIcon.Glyph = "\uF0CE";
+            ThemeIcon.Glyph = GlyphMoonAlt;
             ((FrameworkElement)Content).RequestedTheme = ElementTheme.Dark;
-
-            SaveTheme("Dark");
+            SaveTheme(ThemeDark);
             UpdateIcons();
             ApplyTitleBarTheme(true);
         }
 
         private void DarkMode_Unchecked(object sender, RoutedEventArgs e)
         {
-            ThemeIcon.Glyph = "\uF08C"; // Sun
+            ThemeIcon.Glyph = GlyphSun;
             ((FrameworkElement)Content).RequestedTheme = ElementTheme.Light;
-
-            SaveTheme("Light");
+            SaveTheme(ThemeLight);
             UpdateIcons();
             ApplyTitleBarTheme(false);
         }
 
         private void ApplyTitleBarTheme(bool isDark)
         {
-            var hwnd = WindowNative.GetWindowHandle(this);
-            var windowId = Win32Interop.GetWindowIdFromWindow(hwnd);
-            var appWindow = AppWindow.GetFromWindowId(windowId);
-
-            // Hidden title bar default
-            appWindow.TitleBar.ExtendsContentIntoTitleBar = true;
-
             if (isDark)
             {
-                appWindow.TitleBar.ButtonForegroundColor = Windows.UI.Color.FromArgb(255, 255, 255, 255);
-                appWindow.TitleBar.ButtonBackgroundColor = Windows.UI.Color.FromArgb(0, 0, 0, 0);
+                _appWindow.TitleBar.ButtonForegroundColor = Windows.UI.Color.FromArgb(255, 255, 255, 255);
+                _appWindow.TitleBar.ButtonBackgroundColor = Windows.UI.Color.FromArgb(0, 0, 0, 0);
 
-                appWindow.TitleBar.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(50, 255, 255, 255);
-                appWindow.TitleBar.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(90, 255, 255, 255);
+                _appWindow.TitleBar.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(50, 255, 255, 255);
+                _appWindow.TitleBar.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(90, 255, 255, 255);
 
-                appWindow.TitleBar.ButtonInactiveForegroundColor = Windows.UI.Color.FromArgb(255, 80, 80, 80);
+                _appWindow.TitleBar.ButtonInactiveForegroundColor = Windows.UI.Color.FromArgb(255, 80, 80, 80);
             }
             else
             {
-                appWindow.TitleBar.ButtonForegroundColor = Windows.UI.Color.FromArgb(255, 0, 0, 0);
-                appWindow.TitleBar.ButtonBackgroundColor = Windows.UI.Color.FromArgb(0, 0, 0, 0);
+                _appWindow.TitleBar.ButtonForegroundColor = Windows.UI.Color.FromArgb(255, 0, 0, 0);
+                _appWindow.TitleBar.ButtonBackgroundColor = Windows.UI.Color.FromArgb(0, 0, 0, 0);
 
-                appWindow.TitleBar.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(30, 0, 0, 0);
-                appWindow.TitleBar.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(60, 0, 0, 0);
+                _appWindow.TitleBar.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(30, 0, 0, 0);
+                _appWindow.TitleBar.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(60, 0, 0, 0);
 
-                appWindow.TitleBar.ButtonInactiveForegroundColor = Windows.UI.Color.FromArgb(255, 200, 200, 200);
+                _appWindow.TitleBar.ButtonInactiveForegroundColor = Windows.UI.Color.FromArgb(255, 200, 200, 200);
             }
         }
         private void UpdateIcons()
@@ -157,21 +256,15 @@ namespace All_Messenger
 
             if (theme == ElementTheme.Dark)
             {
-                MessengerIcon.Source =
-                    new BitmapImage(new Uri("ms-appx:///Assets/messenger_light.png"));
-                ZaloIcon.Source =
-                   new BitmapImage(new Uri("ms-appx:///Assets/zalo_light.png"));
-                TeamsIcon.Source =
-                   new BitmapImage(new Uri("ms-appx:///Assets/teams_light.png"));
+                MessengerIcon.Source = _messengerLight;
+                ZaloIcon.Source = _zaloLight;
+                TeamsIcon.Source = _teamsLight;
             }
             else
             {
-                MessengerIcon.Source =
-                    new BitmapImage(new Uri("ms-appx:///Assets/messenger_dark.png"));
-                ZaloIcon.Source =
-                    new BitmapImage(new Uri("ms-appx:///Assets/zalo_dark.png"));
-                TeamsIcon.Source =
-                    new BitmapImage(new Uri("ms-appx:///Assets/teams_dark.png"));
+                MessengerIcon.Source = _messengerDark;
+                ZaloIcon.Source = _zaloDark;
+                TeamsIcon.Source = _teamsDark;
             }
         }
         #endregion

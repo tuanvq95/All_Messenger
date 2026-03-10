@@ -34,7 +34,7 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="All Messenger"
+        DisplayName="All-in-One Messenger"
         Description="All messenger apps are integrated into a single application."
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
