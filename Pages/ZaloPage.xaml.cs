@@ -1,30 +1,31 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
-using Microsoft.UI.Xaml;
+using All_Messenger.Helper;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Navigation;
-
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
+using Microsoft.Web.WebView2.Core;
+using System;
 
 namespace All_Messenger.Pages;
 
 /// <summary>
 /// An empty page that can be used on its own or navigated to within a Frame.
 /// </summary>
-public sealed partial class ZaloPage : Page
+public sealed partial class ZaloPage : WebViewPageBase
 {
+    public override WebView2 WebView => ZaloWebView;
+    public override string AppId => "Zalo";
+    public override Uri StartUri => new("https://chat.zalo.me/");
+
     public ZaloPage()
     {
         InitializeComponent();
+        InitWebView();
+    }
+
+    protected override void OnCoreWebView2Ready(CoreWebView2 core)
+    {
+        WebViewNotificationHelper.AttachSessionDetector(
+            AppId, core,
+            url => url.Contains("chat.zalo.me") &&
+                   !url.Contains("login") &&
+                   !url.Contains("oauth"));
     }
 }

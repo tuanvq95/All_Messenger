@@ -65,11 +65,11 @@ namespace All_Messenger
             InitializeComponent();
 
             _messengerLight = new(new Uri(AssetMessengerLight));
-            _messengerDark  = new(new Uri(AssetMessengerDark));
-            _zaloLight      = new(new Uri(AssetZaloLight));
-            _zaloDark       = new(new Uri(AssetZaloDark));
-            _teamsLight     = new(new Uri(AssetTeamsLight));
-            _teamsDark      = new(new Uri(AssetTeamsDark));
+            _messengerDark = new(new Uri(AssetMessengerDark));
+            _zaloLight = new(new Uri(AssetZaloLight));
+            _zaloDark = new(new Uri(AssetZaloDark));
+            _teamsLight = new(new Uri(AssetTeamsLight));
+            _teamsDark = new(new Uri(AssetTeamsDark));
 
             _tabs = new()
             {
@@ -171,9 +171,9 @@ namespace All_Messenger
 
         private (WebView2? WebView, bool IsReady) GetWebViewInfo(string appId) => appId switch
         {
+            AppIdZalo => (ZaloPage.WebView, ZaloPage.IsReady),
             AppIdTeams => (TeamsPage.WebView, TeamsPage.IsReady),
-            AppIdMessenger => (null, false),
-            AppIdZalo => (null, false),
+            AppIdMessenger => (MessengerPage.WebView, MessengerPage.IsReady),
             _ => (null, false)
         };
         #endregion

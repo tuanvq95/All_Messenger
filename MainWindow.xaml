@@ -105,22 +105,22 @@
                 <!-- Welcome view — chỉ hiện lần đầu, ẩn sau khi chọn tab -->
                 <Grid x:Name="WelcomeView">
                     <StackPanel HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Spacing="16">
+                        VerticalAlignment="Center"
+                        Spacing="16">
 
                         <Image Source="ms-appx:///Assets/logo.png"
-                   Width="80" Height="80"
-                   HorizontalAlignment="Center"/>
+                           Width="80" Height="80"
+                           HorizontalAlignment="Center"/>
 
                         <TextBlock Text="All-in-One Messenger"
-                       FontSize="28"
-                       FontWeight="SemiBold"
-                       HorizontalAlignment="Center"/>
+                           FontSize="28"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Center"/>
 
                         <TextBlock Text="Chọn một ứng dụng để bắt đầu"
-                       FontSize="14"
-                       Opacity="0.6"
-                       HorizontalAlignment="Center"/>
+                           FontSize="14"
+                           Opacity="0.6"
+                           HorizontalAlignment="Center"/>
                     </StackPanel>
                 </Grid>
             </Grid>
