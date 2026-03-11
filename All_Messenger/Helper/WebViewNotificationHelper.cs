@@ -102,15 +102,20 @@ public static class WebViewNotificationHelper
     public static void AttachSessionDetector(
         string appId,
         CoreWebView2 webView,
-        Func<string, bool> isLoggedInUrl)
+        Func<string, bool> isLoggedInUrl,
+        bool resetOnFalse = true)
     {
         webView.NavigationCompleted += (sender, args) =>
         {
             bool loggedIn = isLoggedInUrl(sender.Source);
-            NotificationService.Instance.SetSession(appId, loggedIn);
+
+            // resetOnFalse=false: chỉ set true khi detect login, không reset khi
+            // navigate sang domain khác (vd: facebook.com link preview trong Messenger)
+            if (loggedIn || resetOnFalse)
+                NotificationService.Instance.SetSession(appId, loggedIn);
 
             System.Diagnostics.Debug.WriteLine(
-                $"[SessionDetector:{appId}] url={sender.Source} → session={loggedIn}");
+                $"[SessionDetector:{appId}] url={sender.Source} → loggedIn={loggedIn} (reset={resetOnFalse})");
         };
     }
 }

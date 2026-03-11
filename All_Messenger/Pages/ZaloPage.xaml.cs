@@ -22,10 +22,13 @@ public sealed partial class ZaloPage : WebViewPageBase
 
     protected override void OnCoreWebView2Ready(CoreWebView2 core)
     {
+        // Login/OAuth c?a Zalo n?m tr?n id.zalo.me, kh?ng ph?i chat.zalo.me
+        // ¨ ch? c?n check chat.zalo.me l? ?? ?? x?c ??nh logged-in.
+        // resetOnFalse=false: tr?nh reset session khi Zalo navigate sang
+        // zalo.me (sticker store, b?i vi?t, v.v.) ho?c link ngo?i.
         WebViewNotificationHelper.AttachSessionDetector(
             AppId, core,
-            url => url.Contains("chat.zalo.me") &&
-                   !url.Contains("login") &&
-                   !url.Contains("oauth"));
+            url => url.Contains("chat.zalo.me"),
+            resetOnFalse: false);
     }
 }

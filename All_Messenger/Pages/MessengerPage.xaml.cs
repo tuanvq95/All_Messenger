@@ -22,10 +22,16 @@ public sealed partial class MessengerPage : WebViewPageBase
 
     protected override void OnCoreWebView2Ready(CoreWebView2 core)
     {
+        // Ch? set session=true khi x?c nh?n ?ang ? trang Messenger ?? login.
+        // Kh?ng reset v? false khi navigate sang facebook.com (link preview, v.v.)
+        // ?? tr?nh m?t notification trong l?c ??.
         WebViewNotificationHelper.AttachSessionDetector(
             AppId, core,
             url => url.Contains("messenger.com") &&
-                   !url.Contains("login") &&
-                   !url.Contains("oauth"));
+                   !url.Contains("/login") &&
+                   !url.Contains("/oauth") &&
+                   !url.Contains("/recover") &&
+                   !url.Contains("/checkpoint"),
+            resetOnFalse: false);
     }
 }

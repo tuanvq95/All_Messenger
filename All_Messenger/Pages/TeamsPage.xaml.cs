@@ -22,11 +22,15 @@ public sealed partial class TeamsPage : WebViewPageBase
 
     protected override void OnCoreWebView2Ready(CoreWebView2 core)
     {
+        // Chỉ dùng teams.microsoft.com để xác định logged-in.
+        // Không check oauth2/microsoftonline.com vì đã bị lọc bởi condition đầu.
+        // Dùng "/login" thay "login" để tránh false negative với query param login_hint=...
+        // resetOnFalse=false: Teams có thể mở link SharePoint/OneDrive sang domain khác,
+        // không được reset session khi đó.
         WebViewNotificationHelper.AttachSessionDetector(
             AppId, core,
             url => url.Contains("teams.microsoft.com") &&
-                   !url.Contains("login") &&
-                   !url.Contains("oauth2") &&
-                   !url.Contains("microsoftonline.com"));
+                   !url.Contains("/login"),
+            resetOnFalse: false);
     }
 }
