@@ -103,7 +103,7 @@
                 <pages:SettingPage   x:Name="SettingPage"  Visibility="Collapsed"/>
 
                 <!-- Welcome view — chỉ hiện lần đầu, ẩn sau khi chọn tab -->
-                <Grid x:Name="WelcomeView">
+                <Grid x:Name="WelcomeView" Visibility="Collapsed">
                     <StackPanel HorizontalAlignment="Center"
                         VerticalAlignment="Center"
                         Spacing="16">
@@ -125,5 +125,36 @@
                 </Grid>
             </Grid>
         </NavigationView>
+
+        <!-- Splash Screen — phủ toàn bộ cửa sổ trong khi khởi động -->
+        <Grid x:Name="SplashView">
+            <Grid.Background>
+                <SolidColorBrush Color="{ThemeResource SolidBackgroundFillColorBase}"/>
+            </Grid.Background>
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="20">
+
+                <Image Source="ms-appx:///Assets/logo.png"
+                       Width="80" Height="80"
+                       HorizontalAlignment="Center"/>
+
+                <TextBlock Text="All-in-One Messenger"
+                           FontSize="28"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Center"/>
+
+                <ProgressRing IsActive="True"
+                              Width="36" Height="36"
+                              HorizontalAlignment="Center"/>
+
+                <TextBlock Text="Đang khởi động..."
+                           FontSize="13"
+                           Opacity="0.6"
+                           HorizontalAlignment="Center"/>
+
+            </StackPanel>
+        </Grid>
+
     </Grid>
 </Window>

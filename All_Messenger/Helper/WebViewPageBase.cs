@@ -91,17 +91,23 @@ public abstract class WebViewPageBase : Page
             {
                 try
                 {
-                    if (WebView.CoreWebView2 == null || !_isReady) return;
+                    var core = WebView.CoreWebView2;
+                    if (core == null || !_isReady) return;
 
                     if (!args.Visible)
-                        await WebView.CoreWebView2.TrySuspendAsync();
+                    {
+                        if (!core.IsSuspended)
+                            await core.TrySuspendAsync();
+                    }
                     else
-                        WebView.CoreWebView2.Resume();
+                    {
+                        if (core.IsSuspended)
+                            core.Resume();
+                    }
                 }
-                catch (Exception ex)
+                catch (System.Runtime.InteropServices.COMException)
                 {
-                    System.Diagnostics.Debug.WriteLine(
-                        $"[VisibilityChanged] Exception: {ex.Message}");
+                    // Non-critical: WebView2 may be in a transient invalid state.
                 }
             };
 

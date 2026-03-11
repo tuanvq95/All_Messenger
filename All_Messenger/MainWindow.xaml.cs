@@ -3,9 +3,11 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Windows.Storage;
 using WinRT.Interop;
@@ -36,6 +38,7 @@ namespace All_Messenger
         private const string TabTeams = "TeamsPage";
         private const string TabSettings = "SettingPage";
         private const string TabMessenger = "MessengerPage";
+        private const string TabStartup = TabMessenger;
 
         // ── App IDs ──────────────────────────────────────────────────────────────
         private const string AppIdZalo = "Zalo";
@@ -87,6 +90,55 @@ namespace All_Messenger
             ApplyTheme(LoadTheme());
             UpdateIcons();
             this.SystemBackdrop = new MicaBackdrop();
+            ((FrameworkElement)Content).Loaded += OnWindowLoaded;
+        }
+
+        private async void OnWindowLoaded(object sender, RoutedEventArgs e)
+        {
+            ((FrameworkElement)Content).Loaded -= OnWindowLoaded;
+
+            // Auto-navigate to the default tab so pages start initializing immediately
+            await SwitchTab(TabStartup);
+
+            // Sync NavView selection (SelectionChanged will no-op since _activeTab == TabStartup)
+            NavView.SelectedItem = NavView.MenuItems
+                .OfType<NavigationViewItem>()
+                .FirstOrDefault(i => i.Tag?.ToString() == TabStartup);
+
+            // Wait until ALL WebViews finish their first navigation (up to 30s)
+            var deadline = DateTime.UtcNow.AddSeconds(30);
+            while (DateTime.UtcNow < deadline)
+            {
+                var (_, messenger) = GetWebViewInfo(AppIdMessenger);
+                var (_, teams)     = GetWebViewInfo(AppIdTeams);
+                if (messenger && teams) break;
+                await Task.Delay(100);
+            }
+
+            await HideSplashAsync();
+        }
+
+        private Task HideSplashAsync()
+        {
+            var tcs = new TaskCompletionSource();
+            var fade = new DoubleAnimation
+            {
+                From = 1,
+                To = 0,
+                Duration = new Duration(TimeSpan.FromMilliseconds(1200)),
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+            };
+            var storyboard = new Storyboard();
+            Storyboard.SetTarget(fade, SplashView);
+            Storyboard.SetTargetProperty(fade, "Opacity");
+            storyboard.Children.Add(fade);
+            storyboard.Completed += (_, _) =>
+            {
+                SplashView.Visibility = Visibility.Collapsed;
+                tcs.SetResult();
+            };
+            storyboard.Begin();
+            return tcs.Task;
         }
 
         private void Reload_Click(object sender, RoutedEventArgs e)
@@ -148,7 +200,8 @@ namespace All_Messenger
         private Task OnTabShown(string appId)
         {
             var (webView, isReady) = GetWebViewInfo(appId);
-            if (isReady) webView?.CoreWebView2?.Resume();
+            if (isReady && webView?.CoreWebView2 != null && webView.CoreWebView2.IsSuspended)
+                webView.CoreWebView2.Resume();
             return Task.CompletedTask;
         }
 
@@ -157,15 +210,15 @@ namespace All_Messenger
             try
             {
                 var (webView, isReady) = GetWebViewInfo(appId);
-                if (webView?.CoreWebView2 != null && isReady)
+                if (webView?.CoreWebView2 != null && isReady && !webView.CoreWebView2.IsSuspended)
                 {
                     await webView.CoreWebView2.TrySuspendAsync();
                 }
             }
-            catch (Exception ex)
+            catch (System.Runtime.InteropServices.COMException)
             {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[OnTabHidden] thow Exception: {ex.Message}");
+                // Non-critical: WebView2 may be navigating or in a transient invalid state.
+                // The tab is already hidden so failing to suspend is harmless.
             }
         }
 
