@@ -9,7 +9,7 @@
   <Identity
     Name="ee3b8fcc-900e-4389-ab4d-34f68709e77f"
     Publisher="CN=all-messenger"
-    Version="1.0.2.0" />
+    Version="1.0.7.0" />
 
   <Properties>
     <DisplayName>AllinOneMessenger.Package</DisplayName>

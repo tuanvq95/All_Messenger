@@ -7,7 +7,9 @@ using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
+using Windows.ApplicationModel;
 using Windows.Storage;
 using WinRT.Interop;
 
@@ -100,7 +102,7 @@ namespace All_Messenger
             while (DateTime.UtcNow < deadline)
             {
                 var (_, messenger) = GetWebViewInfo(AppIdMessenger);
-                var (_, teams)     = GetWebViewInfo(AppIdTeams);
+                var (_, teams) = GetWebViewInfo(AppIdTeams);
                 if (messenger && teams) break;
                 await Task.Delay(100);
             }
@@ -223,17 +225,18 @@ namespace All_Messenger
         #endregion
 
         #region Theme
+        private const string RegistryPath = @"Software\AllinOneMessenger";
+
         private static void SaveTheme(string theme)
         {
-            ApplicationData.Current.LocalSettings.Values[ThemeKey] = theme;
+            using var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(RegistryPath);
+            key.SetValue(ThemeKey, theme);
         }
 
         private static string LoadTheme()
         {
-            var settings = ApplicationData.Current.LocalSettings.Values;
-            return settings.ContainsKey(ThemeKey)
-                ? settings[ThemeKey]?.ToString() ?? string.Empty
-                : ThemeSystem;
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(RegistryPath);
+            return key?.GetValue(ThemeKey)?.ToString() ?? ThemeSystem;
         }
 
         private void ApplyTheme(string theme)
