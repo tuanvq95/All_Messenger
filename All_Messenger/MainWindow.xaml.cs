@@ -7,7 +7,6 @@ using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Windows.Storage;
 using WinRT.Interop;
@@ -38,7 +37,6 @@ namespace All_Messenger
         private const string TabTeams = "TeamsPage";
         private const string TabSettings = "SettingPage";
         private const string TabMessenger = "MessengerPage";
-        private const string TabStartup = TabMessenger;
 
         // ── App IDs ──────────────────────────────────────────────────────────────
         private const string AppIdZalo = "Zalo";
@@ -97,14 +95,6 @@ namespace All_Messenger
         {
             ((FrameworkElement)Content).Loaded -= OnWindowLoaded;
 
-            // Auto-navigate to the default tab so pages start initializing immediately
-            await SwitchTab(TabStartup);
-
-            // Sync NavView selection (SelectionChanged will no-op since _activeTab == TabStartup)
-            NavView.SelectedItem = NavView.MenuItems
-                .OfType<NavigationViewItem>()
-                .FirstOrDefault(i => i.Tag?.ToString() == TabStartup);
-
             // Wait until ALL WebViews finish their first navigation (up to 30s)
             var deadline = DateTime.UtcNow.AddSeconds(30);
             while (DateTime.UtcNow < deadline)
@@ -116,6 +106,7 @@ namespace All_Messenger
             }
 
             await HideSplashAsync();
+            WelcomeView.Visibility = Visibility.Visible;
         }
 
         private Task HideSplashAsync()
