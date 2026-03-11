@@ -63,6 +63,11 @@ public abstract class WebViewPageBase : Page
         settings.IsStatusBarEnabled = false;
         settings.IsZoomControlEnabled = false;
         settings.IsBuiltInErrorPageEnabled = false;
+        settings.IsPinchZoomEnabled = false;
+        settings.IsGeneralAutofillEnabled = false;
+        settings.IsPasswordAutosaveEnabled = false;
+        settings.AreBrowserAcceleratorKeysEnabled = false;
+        settings.IsSwipeNavigationEnabled = false;
     }
 
     // ── Theme sync ─────────────────────────────────────────────────────────────

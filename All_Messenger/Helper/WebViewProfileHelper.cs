@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace All_Messenger.Helper;
@@ -10,6 +11,7 @@ public static class WebViewProfileHelper
 {
     // Cache environment theo profileName — tránh tạo lại mỗi lần navigate
     private static readonly ConcurrentDictionary<string, CoreWebView2Environment> _cache = new();
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new();
 
     // Thư mục gốc chứa tất cả profile
     private static readonly string BasePath = Path.Combine(
@@ -29,34 +31,47 @@ public static class WebViewProfileHelper
         if (_cache.TryGetValue(profileName, out var cached))
             return cached;
 
-        string profilePath = Path.Combine(BasePath, profileName);
-        Directory.CreateDirectory(profilePath); // idempotent, an toàn khi gọi lại
-
-        var options = new CoreWebView2EnvironmentOptions
+        // Dùng per-profile lock để tránh tạo 2 Environment song song cho cùng 1 profile
+        var sem = _locks.GetOrAdd(profileName, _ => new SemaphoreSlim(1, 1));
+        await sem.WaitAsync();
+        try
         {
-            AdditionalBrowserArguments = string.Join(" ",
-            [
-                "--disable-features=msSmartScreen",
-                "--disable-renderer-backgrounding",
-                "--disable-background-networking",
-                "--disable-background-timer-throttling",
-                "--disable-backgrounding-occluded-windows",
-                "--disable-sync",
-                "--disable-translate",
-                "--disable-default-apps",
-                "--no-first-run",
-                "--autoplay-policy=no-user-gesture-required",
-            ])
-        };
+            if (_cache.TryGetValue(profileName, out cached))
+                return cached;
 
-        var env = await CoreWebView2Environment.CreateWithOptionsAsync(
-            null, // dùng WebView2 runtime hệ thống
-            profilePath,   // ← KEY: mỗi app 1 folder riêng
-            options
-        );
+            string profilePath = Path.Combine(BasePath, profileName);
+            Directory.CreateDirectory(profilePath);
 
-        // Chỉ lưu vào cache nếu chưa có (tránh race condition)
-        return _cache.GetOrAdd(profileName, env);
+            var options = new CoreWebView2EnvironmentOptions
+            {
+                AdditionalBrowserArguments = string.Join(" ",
+                [
+                    "--disable-features=msSmartScreen",
+                    // NOTE: --disable-renderer-backgrounding bị bỏ vì xung đột với TrySuspendAsync
+                    "--disable-background-networking",
+                    "--disable-background-timer-throttling",
+                    "--disable-backgrounding-occluded-windows",
+                    "--disable-sync",
+                    "--disable-translate",
+                    "--disable-default-apps",
+                    "--no-first-run",
+                    "--autoplay-policy=no-user-gesture-required",
+                ])
+            };
+
+            var env = await CoreWebView2Environment.CreateWithOptionsAsync(
+                null,
+                profilePath,
+                options
+            );
+
+            _cache[profileName] = env;
+            return env;
+        }
+        finally
+        {
+            sem.Release();
+        }
     }
 
     /// <summary>
