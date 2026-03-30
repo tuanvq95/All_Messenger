@@ -1,4 +1,5 @@
-﻿using Microsoft.Toolkit.Uwp.Notifications;
+﻿using All_Messenger.Helper;
+using Microsoft.Toolkit.Uwp.Notifications;
 using Microsoft.UI.Dispatching;
 using System;
 using System.Collections.Concurrent;
@@ -46,9 +47,7 @@ public sealed class NotificationService
     // ── Notification mode ──────────────────────────────────────────────────────
     private static string GetNotificationMode()
     {
-        var values = Windows.Storage.ApplicationData.Current.LocalSettings.Values;
-        return values.TryGetValue(NotificationModeKey, out var val) && val is string s
-            ? s : NotificationModeToast;
+        return AppSettings.Get(NotificationModeKey) ?? NotificationModeToast;
     }
 
     // ── Badge management ───────────────────────────────────────────────────────

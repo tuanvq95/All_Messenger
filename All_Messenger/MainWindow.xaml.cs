@@ -7,7 +7,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Windows.Storage;
+using All_Messenger.Helper;
 using WinRT.Interop;
 
 namespace All_Messenger
@@ -186,15 +186,12 @@ namespace All_Messenger
         #region Theme
         private static void SaveTheme(string theme)
         {
-            ApplicationData.Current.LocalSettings.Values[ThemeKey] = theme;
+            AppSettings.Set(ThemeKey, theme);
         }
 
         private static string LoadTheme()
         {
-            var settings = ApplicationData.Current.LocalSettings.Values;
-            return settings.ContainsKey(ThemeKey)
-                ? settings[ThemeKey]?.ToString() ?? string.Empty
-                : ThemeSystem;
+            return AppSettings.Get(ThemeKey) ?? ThemeSystem;
         }
 
         private void ApplyTheme(string theme)

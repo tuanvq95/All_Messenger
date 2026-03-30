@@ -10,8 +10,7 @@
     <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
 
     <!-- Unpackaged -->
-    <WindowsPackageType>MSIX</WindowsPackageType>
-    <EnableMsixTooling>true</EnableMsixTooling>
+    <WindowsPackageType>None</WindowsPackageType>
 
     <!-- x64 only -->
     <Platforms>x64</Platforms>

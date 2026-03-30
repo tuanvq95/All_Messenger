@@ -1,7 +1,7 @@
+using All_Messenger.Helper;
 using All_Messenger.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Windows.Storage;
 
 namespace All_Messenger.Pages;
 
@@ -38,13 +38,12 @@ public sealed partial class SettingPage : Page
 
     private static string LoadNotificationMode()
     {
-        var values = ApplicationData.Current.LocalSettings.Values;
-        return values.TryGetValue(NotificationService.NotificationModeKey, out var v) && v is string s
-            ? s : NotificationService.NotificationModeToast;
+        return AppSettings.Get(NotificationService.NotificationModeKey)
+            ?? NotificationService.NotificationModeToast;
     }
 
     private static void SaveNotificationMode(string mode)
     {
-        ApplicationData.Current.LocalSettings.Values[NotificationService.NotificationModeKey] = mode;
+        AppSettings.Set(NotificationService.NotificationModeKey, mode);
     }
 }
