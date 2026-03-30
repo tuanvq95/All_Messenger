@@ -149,6 +149,11 @@ namespace All_Messenger
         {
             var (webView, isReady) = GetWebViewInfo(appId);
             if (isReady) webView?.CoreWebView2?.Resume();
+
+            // Xoá badge khi user chuyển sang tab đó
+            if (!string.IsNullOrEmpty(appId))
+                Services.NotificationService.Instance.ClearBadge(appId);
+
             return Task.CompletedTask;
         }
 

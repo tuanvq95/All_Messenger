@@ -2,40 +2,39 @@
 using Microsoft.UI.Dispatching;
 using System;
 using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
+using Windows.Data.Xml.Dom;
+using Windows.UI.Notifications;
 
 namespace All_Messenger.Services;
 
 public sealed class NotificationService
 {
+    // ── Setting keys (dùng chung với SettingPage) ──────────────────────────────
+    public const string NotificationModeKey = "NotificationMode";
+    public const string NotificationModeToast = "Toast";
+    public const string NotificationModeSilent = "Silent";
+
     // ── Singleton ──────────────────────────────────────────────────────────────
     private static readonly Lazy<NotificationService> _instance =
         new(() => new NotificationService());
     public static NotificationService Instance => _instance.Value;
 
     // ── State ──────────────────────────────────────────────────────────────────
-    // appId → có session hay chưa (đã login)
     private readonly ConcurrentDictionary<string, bool> _sessionMap = new();
+    private readonly ConcurrentDictionary<string, int> _badgeCounts = new();
 
     private DispatcherQueue? _dispatcherQueue;
 
     private NotificationService() { }
 
     // ── Init ───────────────────────────────────────────────────────────────────
-    /// <summary>
-    /// Gọi 1 lần duy nhất từ MainWindow hoặc App.xaml.cs
-    /// để lưu DispatcherQueue của UI thread chính.
-    /// </summary>
     public void Initialize(DispatcherQueue dispatcherQueue)
     {
         _dispatcherQueue = dispatcherQueue;
     }
 
     // ── Session management ─────────────────────────────────────────────────────
-    /// <summary>
-    /// Đánh dấu một app/page đã có session (đã login).
-    /// Chỉ khi có session thì notification mới được hiển thị.
-    /// </summary>
-    /// <param name="appId">VD: "Teams", "Messenger", "Zalo"</param>
     public void SetSession(string appId, bool hasSession)
     {
         _sessionMap[appId] = hasSession;
@@ -44,11 +43,59 @@ public sealed class NotificationService
     public bool HasSession(string appId) =>
         _sessionMap.TryGetValue(appId, out bool v) && v;
 
+    // ── Notification mode ──────────────────────────────────────────────────────
+    private static string GetNotificationMode()
+    {
+        var values = Windows.Storage.ApplicationData.Current.LocalSettings.Values;
+        return values.TryGetValue(NotificationModeKey, out var val) && val is string s
+            ? s : NotificationModeToast;
+    }
+
+    // ── Badge management ───────────────────────────────────────────────────────
+    public void ClearBadge(string appId)
+    {
+        _badgeCounts[appId] = 0;
+        UpdateTaskbarBadge();
+    }
+
+    private void IncrementBadge(string appId)
+    {
+        _badgeCounts.AddOrUpdate(appId, 1, (_, old) => old + 1);
+        UpdateTaskbarBadge();
+    }
+
+    private void UpdateTaskbarBadge()
+    {
+        try
+        {
+            int total = 0;
+            foreach (var c in _badgeCounts.Values) total += c;
+
+            var badgeXml = BadgeUpdateManager.GetTemplateContent(
+                total > 0 ? BadgeTemplateType.BadgeNumber : BadgeTemplateType.BadgeGlyph);
+
+            var badgeElement = (XmlElement)badgeXml.SelectSingleNode("/badge");
+            if (total > 0)
+                badgeElement?.SetAttribute("value", total.ToString());
+            else
+                badgeElement?.SetAttribute("value", "none");
+
+            BadgeUpdateManager.CreateBadgeUpdaterForApplication()
+                              .Update(new BadgeNotification(badgeXml));
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"[NotificationService] Badge update failed: {ex.Message}");
+        }
+    }
+
+    // ── Sound (P/Invoke winmm) ─────────────────────────────────────────────────
+    [DllImport("user32.dll")]
+    private static extern bool MessageBeep(uint uType);
+    private const uint MB_ICONASTERISK = 0x00000040; // "Asterisk" system sound
+
     // ── Notification entry point ───────────────────────────────────────────────
-    /// <summary>
-    /// Được gọi từ bất kỳ WebView nào khi nhận WebMessage loại "notification".
-    /// Tự động kiểm tra session trước khi hiển thị.
-    /// </summary>
     public void HandleWebNotification(string appId, string title, string body, string? icon = null)
     {
         if (!HasSession(appId))
@@ -58,7 +105,15 @@ public sealed class NotificationService
             return;
         }
 
-        ShowToast(appId, title, body, icon);
+        if (GetNotificationMode() == NotificationModeSilent)
+        {
+            IncrementBadge(appId);
+            MessageBeep(MB_ICONASTERISK);
+        }
+        else
+        {
+            ShowToast(appId, title, body, icon);
+        }
     }
 
     // ── Internal toast ─────────────────────────────────────────────────────────
@@ -69,7 +124,7 @@ public sealed class NotificationService
             try
             {
                 var builder = new ToastContentBuilder()
-                    .AddArgument("appId", appId)   // để handle click về đúng page
+                    .AddArgument("appId", appId)
                     .AddText($"[{appId}] {title}");
 
                 if (!string.IsNullOrWhiteSpace(body))
@@ -87,10 +142,9 @@ public sealed class NotificationService
             }
         }
 
-        // Đảm bảo chạy trên UI thread
         if (_dispatcherQueue is not null)
             _dispatcherQueue.TryEnqueue(Show);
         else
-            Show(); // fallback nếu chưa init (hiếm)
+            Show();
     }
 }

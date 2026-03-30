@@ -9,9 +9,23 @@
     mc:Ignorable="d">
 
     <ScrollViewer Padding="24">
-        <StackPanel Spacing="16" MaxWidth="600" HorizontalAlignment="Left">
-            <TextBlock Text="Settings" FontSize="28" FontWeight="SemiBold"/>
-            <!-- TODO: thêm settings controls ở đây -->
+        <StackPanel Spacing="24" MaxWidth="600" HorizontalAlignment="Left">
+            <TextBlock Text="Cài đặt" FontSize="28" FontWeight="SemiBold"/>
+
+            <!-- Thông báo -->
+            <StackPanel Spacing="12">
+                <TextBlock Text="Thông báo" FontSize="16" FontWeight="SemiBold"/>
+
+                <RadioButtons x:Name="NotificationModeGroup"
+                              SelectionChanged="NotificationModeGroup_SelectionChanged">
+                    <RadioButton x:Name="RadioToast"
+                                 Content="Toast – Hiển thị popup thông báo đầy đủ"
+                                 Tag="Toast"/>
+                    <RadioButton x:Name="RadioSilent"
+                                 Content="Im lặng – Chỉ badge số và âm thanh trên taskbar"
+                                 Tag="Silent"/>
+                </RadioButtons>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </Page>
