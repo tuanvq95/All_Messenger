@@ -25,14 +25,26 @@
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile> -->
 
     <PublishTrimmed>false</PublishTrimmed>
-    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">true</PublishReadyToRun>
+    <PublishReadyToRun>false</PublishReadyToRun>
+
+    <!-- Dùng custom Program.cs thay vì auto-generated Main từ XAML compiler -->
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="Pages\MessengerPage.xaml" />
-    <None Remove="Pages\SettingPage.xaml" />
     <None Remove="Pages\TeamsPage.xaml" />
     <None Remove="Pages\ZaloPage.xaml" />
   </ItemGroup>
+
+  <!-- Đảm bảo compiled XAML (.xbf) và resource index (.pri) được copy vào publish -->
+  <Target Name="CopyXbfAndPriToPublish" AfterTargets="Publish">
+    <ItemGroup>
+      <_XbfFiles Include="$(OutDir)*.xbf" />
+      <_PriFiles Include="$(OutDir)$(AssemblyName).pri" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_XbfFiles)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_PriFiles)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+  </Target>
 
   <ItemGroup>
     <Content Include="Assets\SplashScreen.scale-200.png" />
