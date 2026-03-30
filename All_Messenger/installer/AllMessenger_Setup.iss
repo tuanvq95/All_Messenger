@@ -53,7 +53,7 @@ PrivilegesRequiredOverridesAllowed=dialog
 
 ; Hiện license, wizard, v.v.
 WizardStyle=modern
-WizardSmallImageFile={#AppIcon}
+;WizardSmallImageFile={#AppIcon}
 
 ; Cho phép uninstall
 Uninstallable=yes
@@ -62,7 +62,7 @@ UninstallDisplayName={#AppName}
 CreateUninstallRegKey=yes
 
 [Languages]
-Name: "vietnamese"; MessagesFile: "compiler:Languages\Default.isl"
+;Name: "vietnamese"; MessagesFile: "compiler:Languages\Default.isl"
 Name: "english";    MessagesFile: "compiler:Default.isl"
 
 [Tasks]
