@@ -15,7 +15,7 @@
   <mp:PhoneIdentity PhoneProductId="9172cfc1-06cb-4d83-9285-4e52f0d3bd7d" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
-    <DisplayName>All_Messenger</DisplayName>
+    <DisplayName>All-in-One Messenger</DisplayName>
     <PublisherDisplayName>MrRom</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -34,7 +34,7 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="All Messenger"
+        DisplayName="All-in-One Messenger"
         Description="All messenger apps are integrated into a single application."
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"

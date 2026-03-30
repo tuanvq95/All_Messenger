@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Page
-    x:Class="All_Messenger.Pages.TeamsPage"
+<helper:WebViewPageBase
+    x:Class="All_Messenger.Pages.ZaloPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:All_Messenger.Pages"
+    xmlns:helper="using:All_Messenger.Helper"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
     <Grid>
-        <TextBlock Text="Teams View" FontSize="40"/>
+        <WebView2 x:Name="ZaloWebView"
+                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Stretch"/>
     </Grid>
-</Page>
+
+</helper:WebViewPageBase>

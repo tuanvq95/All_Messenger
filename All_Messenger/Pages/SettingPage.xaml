@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Page
-    x:Class="All_Messenger.Pages.MessengerPage"
+    x:Class="All_Messenger.Pages.SettingPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:All_Messenger.Pages"
@@ -8,7 +8,10 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid>
-        <TextBlock Text="Messenger View" FontSize="40"/>
-    </Grid>
+    <ScrollViewer Padding="24">
+        <StackPanel Spacing="16" MaxWidth="600" HorizontalAlignment="Left">
+            <TextBlock Text="Settings" FontSize="28" FontWeight="SemiBold"/>
+            <!-- TODO: thêm settings controls ở đây -->
+        </StackPanel>
+    </ScrollViewer>
 </Page>
