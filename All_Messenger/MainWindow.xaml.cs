@@ -3,14 +3,11 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Threading.Tasks;
-using Windows.ApplicationModel;
-using Windows.Storage;
+using All_Messenger.Helper;
 using WinRT.Interop;
 
 namespace All_Messenger
@@ -90,48 +87,6 @@ namespace All_Messenger
             ApplyTheme(LoadTheme());
             UpdateIcons();
             this.SystemBackdrop = new MicaBackdrop();
-            ((FrameworkElement)Content).Loaded += OnWindowLoaded;
-        }
-
-        private async void OnWindowLoaded(object sender, RoutedEventArgs e)
-        {
-            ((FrameworkElement)Content).Loaded -= OnWindowLoaded;
-
-            // Wait until ALL WebViews finish their first navigation (up to 30s)
-            var deadline = DateTime.UtcNow.AddSeconds(30);
-            while (DateTime.UtcNow < deadline)
-            {
-                var (_, messenger) = GetWebViewInfo(AppIdMessenger);
-                var (_, teams) = GetWebViewInfo(AppIdTeams);
-                if (messenger && teams) break;
-                await Task.Delay(100);
-            }
-
-            await HideSplashAsync();
-            WelcomeView.Visibility = Visibility.Visible;
-        }
-
-        private Task HideSplashAsync()
-        {
-            var tcs = new TaskCompletionSource();
-            var fade = new DoubleAnimation
-            {
-                From = 1,
-                To = 0,
-                Duration = new Duration(TimeSpan.FromMilliseconds(1200)),
-                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
-            };
-            var storyboard = new Storyboard();
-            Storyboard.SetTarget(fade, SplashView);
-            Storyboard.SetTargetProperty(fade, "Opacity");
-            storyboard.Children.Add(fade);
-            storyboard.Completed += (_, _) =>
-            {
-                SplashView.Visibility = Visibility.Collapsed;
-                tcs.SetResult();
-            };
-            storyboard.Begin();
-            return tcs.Task;
         }
 
         private void Reload_Click(object sender, RoutedEventArgs e)
@@ -193,8 +148,12 @@ namespace All_Messenger
         private Task OnTabShown(string appId)
         {
             var (webView, isReady) = GetWebViewInfo(appId);
-            if (isReady && webView?.CoreWebView2 != null && webView.CoreWebView2.IsSuspended)
-                webView.CoreWebView2.Resume();
+            if (isReady) webView?.CoreWebView2?.Resume();
+
+            // Xoá badge khi user chuyển sang tab đó
+            if (!string.IsNullOrEmpty(appId))
+                Services.NotificationService.Instance.ClearBadge(appId);
+
             return Task.CompletedTask;
         }
 
@@ -203,15 +162,15 @@ namespace All_Messenger
             try
             {
                 var (webView, isReady) = GetWebViewInfo(appId);
-                if (webView?.CoreWebView2 != null && isReady && !webView.CoreWebView2.IsSuspended)
+                if (webView?.CoreWebView2 != null && isReady)
                 {
                     await webView.CoreWebView2.TrySuspendAsync();
                 }
             }
-            catch (System.Runtime.InteropServices.COMException)
+            catch (Exception ex)
             {
-                // Non-critical: WebView2 may be navigating or in a transient invalid state.
-                // The tab is already hidden so failing to suspend is harmless.
+                System.Diagnostics.Debug.WriteLine(
+                    $"[OnTabHidden] thow Exception: {ex.Message}");
             }
         }
 
@@ -225,18 +184,14 @@ namespace All_Messenger
         #endregion
 
         #region Theme
-        private const string RegistryPath = @"Software\AllinOneMessenger";
-
         private static void SaveTheme(string theme)
         {
-            using var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(RegistryPath);
-            key.SetValue(ThemeKey, theme);
+            AppSettings.Set(ThemeKey, theme);
         }
 
         private static string LoadTheme()
         {
-            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(RegistryPath);
-            return key?.GetValue(ThemeKey)?.ToString() ?? ThemeSystem;
+            return AppSettings.Get(ThemeKey) ?? ThemeSystem;
         }
 
         private void ApplyTheme(string theme)
