@@ -11,6 +11,8 @@
 
     <!-- Unpackaged -->
     <WindowsPackageType>None</WindowsPackageType>
+    <!--<WindowsPackageType>MSIX</WindowsPackageType>
+	<EnableMsixTooling>true</EnableMsixTooling>-->
 
     <!-- x64 only -->
     <Platforms>x64</Platforms>

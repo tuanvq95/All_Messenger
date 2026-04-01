@@ -1,21 +1,22 @@
 ﻿using All_Messenger.Services;
 using Microsoft.UI.Xaml;
+using Microsoft.Windows.AppNotifications;
 using System;
 using System.IO;
 using System.Threading.Tasks;
 
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
+// Tìm hiểu thêm về WinUI, cấu trúc dự án WinUI và các template tại: http://aka.ms/winui-project-info
 
 namespace All_Messenger
 {
     /// <summary>
-    /// Provides application-specific behavior to supplement the default Application class.
+    /// Lớp ứng dụng chính — khởi tạo và quản lý vòng đời toàn bộ app.
     /// </summary>
     public partial class App : Application
     {
         public static MainWindow? MainWindow { get; private set; }
 
+        // Đường dẫn file log lỗi
         // Packaged (MSIX): %LocalAppData%\Packages\{PFN}\LocalState\error.log
         // Unpackaged (exe): %LocalAppData%\AllinOneMessenger\error.log
         private static readonly string LogPath = GetLogPath();
@@ -43,14 +44,19 @@ namespace All_Messenger
         {
             InitializeComponent();
 
-            // WinUI UI-thread exceptions
+            // Bắt exception trên UI thread
             this.UnhandledException += App_UnhandledException;
 
-            // Non-UI thread exceptions (background threads, native interop)
+            // Đăng ký AppNotificationManager — hoạt động cả packaged lẫn unpackaged
+            AppNotificationManager.Default.NotificationInvoked += (_, _) =>
+                MainWindow?.DispatcherQueue.TryEnqueue(() => MainWindow.Activate());
+            AppNotificationManager.Default.Register();
+
+            // Bắt exception trên background thread và native interop
             AppDomain.CurrentDomain.UnhandledException += (_, e) =>
                 WriteLog("AppDomain.UnhandledException", e.ExceptionObject as Exception);
 
-            // Unobserved async Task exceptions
+            // Bắt Task bị bỏ sót không được await (unobserved async exception)
             TaskScheduler.UnobservedTaskException += (_, e) =>
             {
                 WriteLog("TaskScheduler.UnobservedTaskException", e.Exception);
@@ -72,14 +78,21 @@ namespace All_Messenger
                 var entry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{source}]{Environment.NewLine}{ex}{Environment.NewLine}{new string('-', 80)}{Environment.NewLine}";
                 File.AppendAllText(LogPath, entry);
             }
-            catch { /* không làm crash app vì lỗi ghi log */ }
+            catch { /* bỏ qua lỗi I/O khi ghi log, tránh làm crash app */ }
         }
         /// <summary>
-        /// Invoked when the application is launched.
+        /// Được gọi khi ứng dụng khởi động.
         /// </summary>
-        /// <param name="args">Details about the launch request and process.</param>
+        /// <param name="args">Thông tin về yêu cầu khởi động.</param>
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
+            if (MainWindow is not null)
+            {
+                // App đã chạy (VD: activated từ toast) → chỉ focus, không tạo mới
+                MainWindow.Activate();
+                return;
+            }
+
             MainWindow = new MainWindow();
 
             // ── Init NotificationService với UI DispatcherQueue ──────────────────
