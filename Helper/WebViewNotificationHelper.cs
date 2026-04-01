@@ -33,6 +33,15 @@ public static class WebViewNotificationHelper
                     }
                 }
 
+                function postBadge(count) {
+                    try {
+                        window.chrome.webview.postMessage(JSON.stringify({
+                            type: 'badge',
+                            count: count
+                        }));
+                    } catch(e) {}
+                }
+
                 // ── Hook 1: window.Notification constructor ──────────────────────────────
                 // Bắt Messenger & Zalo (dùng new Notification() từ page context).
                 const _OriginalNotification = window.Notification;
@@ -79,10 +88,16 @@ public static class WebViewNotificationHelper
                     const count = match ? parseInt(match[1], 10) : 0;
 
                     if (_prevCount === -1) {
+                        // Lần đầu: đồng bộ badge từ title hiện tại, không hiện toast
                         _prevCount = count;
+                        postBadge(count);
                         return;
                     }
 
+                    // Luôn đồng bộ badge tuyệt đối từ title
+                    postBadge(count);
+
+                    // Chỉ hiện toast khi có tin mới
                     if (count > _prevCount) {
                         postNotification('New messages', '', '');
                     }
@@ -142,9 +157,20 @@ public static class WebViewNotificationHelper
             using var doc = JsonDocument.Parse(raw);
             var root = doc.RootElement;
 
-            if (!root.TryGetProperty("type", out var typeProp) ||
-                typeProp.GetString() != "notification")
+            if (!root.TryGetProperty("type", out var typeProp)) return;
+            string msgType = typeProp.GetString() ?? "";
+
+            System.Diagnostics.Debug.WriteLine(
+                $"[WebMsg] appId='{appId}' type='{msgType}' raw={raw}");
+
+            if (msgType == "badge")
+            {
+                int count = root.TryGetProperty("count", out var cp) ? cp.GetInt32() : 0;
+                NotificationService.Instance.SetBadgeDirect(appId, count);
                 return;
+            }
+
+            if (msgType != "notification") return;
 
             string title = root.TryGetProperty("title", out var t) ? t.GetString() ?? "" : "";
             string body = root.TryGetProperty("body", out var b) ? b.GetString() ?? "" : "";

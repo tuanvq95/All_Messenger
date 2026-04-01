@@ -7,6 +7,7 @@ using System.Collections.Concurrent;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Drawing.Text;
 using System.Runtime.InteropServices;
 using Windows.Data.Xml.Dom;
 using Windows.UI.Notifications;
@@ -80,6 +81,23 @@ public sealed class NotificationService
     public void ClearBadge(string appId)
     {
         _badgeCounts[appId] = 0;
+        UpdateTaskbarBadge();
+    }
+
+    // Đặt badge tuyệt đối từ title (Hook 3) — không hiển thị toast
+    public void SetBadgeDirect(string appId, int count)
+    {
+        System.Diagnostics.Debug.WriteLine(
+            $"[Badge] SetBadgeDirect '{appId}' count={count} | HasSession={HasSession(appId)} | WindowActive={_isWindowActive}");
+
+        if (!HasSession(appId)) return;
+        if (_isWindowActive) { _badgeCounts[appId] = 0; return; }
+        _badgeCounts[appId] = count;
+
+        int total = 0;
+        foreach (var c in _badgeCounts.Values) total += c;
+        System.Diagnostics.Debug.WriteLine($"[Badge] Total after SetBadgeDirect = {total}");
+
         UpdateTaskbarBadge();
     }
 
@@ -161,10 +179,26 @@ public sealed class NotificationService
         using var bmp = new Bitmap(size, size, PixelFormat.Format32bppArgb);
         using var g = Graphics.FromImage(bmp);
         g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+        g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
         g.Clear(Color.Transparent);
 
+        // Nền tròn đỏ
         using var bgBrush = new SolidBrush(Color.FromArgb(220, 53, 53));
         g.FillEllipse(bgBrush, 1, 1, size - 2, size - 2);
+
+        // Chữ số
+        string text = count > 99 ? "99+" : count.ToString();
+        float fontSize = text.Length > 2 ? 9f : text.Length > 1 ? 11f : 14f;
+        using var font = new Font("Segoe UI", fontSize, System.Drawing.FontStyle.Bold, GraphicsUnit.Point);
+        using var textBrush = new SolidBrush(Color.White);
+        var sf = new StringFormat
+        {
+            Alignment = StringAlignment.Center,
+            LineAlignment = StringAlignment.Center,
+            FormatFlags = StringFormatFlags.NoWrap
+        };
+        g.DrawString(text, font, textBrush, new RectangleF(0, 0, size, size), sf);
 
         return bmp.GetHicon();
     }
@@ -205,19 +239,16 @@ public sealed class NotificationService
     public void HandleWebNotification(string appId, string title, string body, string? icon = null)
     {
         System.Diagnostics.Debug.WriteLine(
-                $"[NotificationService] HandleWebNotification.");
+            $"[Noti] HandleWebNotification '{appId}' | HasSession={HasSession(appId)} | WindowActive={_isWindowActive} | title='{title}'");
+
         if (!HasSession(appId))
         {
-            // Bỏ qua khi chưa đăng nhập — tránh hiện thông báo sai
             System.Diagnostics.Debug.WriteLine(
-                $"[NotificationService] Bỏ qua '{appId}' — chưa có session.");
+                $"[Noti] Bỏ qua '{appId}' — chưa có session.");
             return;
         }
 
-        // App đang được focus — không hiện thông báo, không tăng badge
         if (_isWindowActive) return;
-
-        IncrementBadge(appId);
 
         if (GetNotificationMode() != NotificationModeSilent)
             ShowToast(appId, title, body, icon);
