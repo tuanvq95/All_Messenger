@@ -87,16 +87,12 @@ public sealed class NotificationService
     // Đặt badge tuyệt đối từ title (Hook 3) — không hiển thị toast
     public void SetBadgeDirect(string appId, int count)
     {
-        System.Diagnostics.Debug.WriteLine(
-            $"[Badge] SetBadgeDirect '{appId}' count={count} | HasSession={HasSession(appId)} | WindowActive={_isWindowActive}");
-
         if (!HasSession(appId)) return;
         if (_isWindowActive) { _badgeCounts[appId] = 0; return; }
         _badgeCounts[appId] = count;
 
         int total = 0;
         foreach (var c in _badgeCounts.Values) total += c;
-        System.Diagnostics.Debug.WriteLine($"[Badge] Total after SetBadgeDirect = {total}");
 
         UpdateTaskbarBadge();
     }
@@ -238,9 +234,6 @@ public sealed class NotificationService
     // ── Điểm nhập thông báo ─────────────────────────────────────────────────────
     public void HandleWebNotification(string appId, string title, string body, string? icon = null)
     {
-        System.Diagnostics.Debug.WriteLine(
-            $"[Noti] HandleWebNotification '{appId}' | HasSession={HasSession(appId)} | WindowActive={_isWindowActive} | title='{title}'");
-
         if (!HasSession(appId))
         {
             System.Diagnostics.Debug.WriteLine(
