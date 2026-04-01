@@ -4,6 +4,11 @@ using Microsoft.Windows.AppNotifications;
 using Microsoft.Windows.AppNotifications.Builder;
 using System;
 using System.Collections.Concurrent;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.Drawing.Text;
+using System.Runtime.InteropServices;
 using Windows.Data.Xml.Dom;
 using Windows.UI.Notifications;
 
@@ -21,17 +26,28 @@ public sealed class NotificationService
         new(() => new NotificationService());
     public static NotificationService Instance => _instance.Value;
 
+    // BadgeUpdateManager chỉ hoạt động với packaged app (có package identity)
+    private static readonly bool _isPackaged = CheckIsPackaged();
+    private static bool CheckIsPackaged()
+    {
+        try { _ = Windows.ApplicationModel.Package.Current; return true; }
+        catch { return false; }
+    }
+
     // ── Trạng thái ──────────────────────────────────────────────────────────────────
     private readonly ConcurrentDictionary<string, bool> _sessionMap = new();
     private readonly ConcurrentDictionary<string, int> _badgeCounts = new();
 
-    private DispatcherQueue? _dispatcherQueue; private bool _isWindowActive = false;
+    private DispatcherQueue? _dispatcherQueue;
+    private nint _hwnd;
+    private bool _isWindowActive = false;
     private NotificationService() { }
 
     // ── Khởi tạo ──────────────────────────────────────────────────────────────
-    public void Initialize(DispatcherQueue dispatcherQueue)
+    public void Initialize(DispatcherQueue dispatcherQueue, nint hwnd)
     {
         _dispatcherQueue = dispatcherQueue;
+        _hwnd = hwnd;
     }
     // ── Trạng thái cửa sổ ───────────────────────────────────────────────────
     public void SetWindowActive(bool active)
@@ -76,33 +92,138 @@ public sealed class NotificationService
 
     private void UpdateTaskbarBadge()
     {
-        try
+        int total = 0;
+        foreach (var c in _badgeCounts.Values) total += c;
+
+        if (_isPackaged)
         {
-            int total = 0;
-            foreach (var c in _badgeCounts.Values) total += c;
+            void ApplyPackaged()
+            {
+                try
+                {
+                    var badgeXml = BadgeUpdateManager.GetTemplateContent(
+                        total > 0 ? BadgeTemplateType.BadgeNumber : BadgeTemplateType.BadgeGlyph);
 
-            var badgeXml = BadgeUpdateManager.GetTemplateContent(
-                total > 0 ? BadgeTemplateType.BadgeNumber : BadgeTemplateType.BadgeGlyph);
+                    var badgeElement = (XmlElement)badgeXml.SelectSingleNode("/badge");
+                    if (total > 0)
+                        badgeElement?.SetAttribute("value", total.ToString());
+                    else
+                        badgeElement?.SetAttribute("value", "none");
 
-            var badgeElement = (XmlElement)badgeXml.SelectSingleNode("/badge");
-            if (total > 0)
-                badgeElement?.SetAttribute("value", total.ToString());
+                    BadgeUpdateManager.CreateBadgeUpdaterForApplication()
+                                      .Update(new BadgeNotification(badgeXml));
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[NotificationService] Badge update failed: {ex.Message}");
+                }
+            }
+
+            if (_dispatcherQueue is not null)
+                _dispatcherQueue.TryEnqueue(ApplyPackaged);
             else
-                badgeElement?.SetAttribute("value", "none");
-
-            BadgeUpdateManager.CreateBadgeUpdaterForApplication()
-                              .Update(new BadgeNotification(badgeXml));
+                ApplyPackaged();
         }
-        catch (Exception ex)
+        else
         {
-            System.Diagnostics.Debug.WriteLine(
-                $"[NotificationService] Badge update failed: {ex.Message}");
+            // Unpackaged: dùng ITaskbarList3 SetOverlayIcon
+            void ApplyOverlay()
+            {
+                try
+                {
+                    var taskbar = (ITaskbarList3)new TaskbarListInstance();
+                    taskbar.HrInit();
+
+                    nint hIcon = total > 0 ? CreateBadgeIcon(total) : nint.Zero;
+                    taskbar.SetOverlayIcon(_hwnd, hIcon, total > 0 ? total.ToString() : null);
+
+                    if (hIcon != nint.Zero)
+                        DestroyIcon(hIcon);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[NotificationService] Overlay icon failed: {ex.Message}");
+                }
+            }
+
+            if (_dispatcherQueue is not null)
+                _dispatcherQueue.TryEnqueue(ApplyOverlay);
+            else
+                ApplyOverlay();
         }
     }
+
+    // ── Tạo badge icon bằng GDI+ ────────────────────────────────────────────────
+    private static nint CreateBadgeIcon(int count)
+    {
+        // Vẽ trên canvas 32x32 để chữ sắc nét, Windows sẽ tự scale xuống khi hiển thị
+        const int size = 32;
+        using var bmp = new Bitmap(size, size, PixelFormat.Format32bppArgb);
+        using var g = Graphics.FromImage(bmp);
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+        g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
+        g.Clear(Color.Transparent);
+
+        // Vẽ nền tròn đỏ
+        using var bgBrush = new SolidBrush(Color.FromArgb(220, 53, 53));
+        g.FillEllipse(bgBrush, 1, 1, size - 2, size - 2);
+
+        // Vẽ chữ số
+        string text = count > 99 ? "99+" : count.ToString();
+        float fontSize = text.Length > 2 ? 9f : text.Length > 1 ? 11f : 14f;
+        using var font = new Font("Segoe UI", fontSize, System.Drawing.FontStyle.Bold, GraphicsUnit.Point);
+        using var textBrush = new SolidBrush(Color.White);
+        var sf = new StringFormat
+        {
+            Alignment = StringAlignment.Center,
+            LineAlignment = StringAlignment.Center,
+            FormatFlags = StringFormatFlags.NoWrap
+        };
+        g.DrawString(text, font, textBrush, new RectangleF(0, 0, size, size), sf);
+
+        return bmp.GetHicon();
+    }
+
+    // ── ITaskbarList3 COM interop ────────────────────────────────────────────────
+    [DllImport("user32.dll")]
+    private static extern bool DestroyIcon(nint hIcon);
+
+    [ComImport, Guid("ea1afb91-9e28-4b86-90e9-9e9f8a5eefaf")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface ITaskbarList3
+    {
+        void HrInit();
+        void AddTab(nint hwnd);
+        void DeleteTab(nint hwnd);
+        void ActivateTab(nint hwnd);
+        void SetActiveAlt(nint hwnd);
+        void MarkFullscreenWindow(nint hwnd, [MarshalAs(UnmanagedType.Bool)] bool fFullscreen);
+        void SetProgressValue(nint hwnd, ulong ullCompleted, ulong ullTotal);
+        void SetProgressState(nint hwnd, int tbpFlags);
+        void RegisterTab(nint hwndTab, nint hwndMDI);
+        void UnregisterTab(nint hwndTab);
+        void SetTabOrder(nint hwndTab, nint hwndInsertBefore);
+        void SetTabActive(nint hwndTab, nint hwndMDI, uint dwReserved);
+        void ThumbBarAddButtons(nint hwnd, uint cButtons, nint pButton);
+        void ThumbBarUpdateButtons(nint hwnd, uint cButtons, nint pButton);
+        void ThumbBarSetImageList(nint hwnd, nint himl);
+        void SetOverlayIcon(nint hwnd, nint hIcon, [MarshalAs(UnmanagedType.LPWStr)] string? pszDescription);
+        void SetThumbnailTooltip(nint hwnd, [MarshalAs(UnmanagedType.LPWStr)] string? pszTip);
+        void SetThumbnailClip(nint hwnd, nint prcClip);
+    }
+
+    [ComImport, Guid("56fdf344-fd6d-11d0-958a-006097c9a090")]
+    [ClassInterface(ClassInterfaceType.None)]
+    private class TaskbarListInstance { }
 
     // ── Điểm nhập thông báo ─────────────────────────────────────────────────────
     public void HandleWebNotification(string appId, string title, string body, string? icon = null)
     {
+        System.Diagnostics.Debug.WriteLine(
+                $"[NotificationService] HandleWebNotification.");
         if (!HasSession(appId))
         {
             // Bỏ qua khi chưa đăng nhập — tránh hiện thông báo sai

@@ -95,11 +95,17 @@ public static class WebViewNotificationHelper
                 }
 
                 if (!attachTitleObserver()) {
-                    // <title> chưa tồn tại (SPA thêm vào sau) – đợi đến khi <head> thay đổi
-                    const headObserver = new MutationObserver(() => {
-                        if (attachTitleObserver()) headObserver.disconnect();
+                    // Script chạy trước khi HTML được parse → <title> chưa tồn tại.
+                    // Dùng subtree:true để quan sát toàn bộ cây DOM cho đến khi <title> xuất hiện.
+                    var _rootObserver = new MutationObserver(function() {
+                        if (attachTitleObserver()) _rootObserver.disconnect();
                     });
-                    headObserver.observe(document.head || document.documentElement, { childList: true });
+                    _rootObserver.observe(document.documentElement || document.getRootNode(), { childList: true, subtree: true });
+
+                    // DOMContentLoaded làm fallback cuối cùng
+                    document.addEventListener('DOMContentLoaded', function() {
+                        if (attachTitleObserver()) _rootObserver.disconnect();
+                    }, { once: true });
                 }
             })();
             """;

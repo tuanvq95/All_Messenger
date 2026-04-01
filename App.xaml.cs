@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppNotifications;
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 // Tìm hiểu thêm về WinUI, cấu trúc dự án WinUI và các template tại: http://aka.ms/winui-project-info
@@ -49,7 +50,7 @@ namespace All_Messenger
 
             // Đăng ký AppNotificationManager — hoạt động cả packaged lẫn unpackaged
             AppNotificationManager.Default.NotificationInvoked += (_, _) =>
-                MainWindow?.DispatcherQueue.TryEnqueue(() => MainWindow.Activate());
+                MainWindow?.DispatcherQueue.TryEnqueue(BringWindowToFront);
             AppNotificationManager.Default.Register();
 
             // Bắt exception trên background thread và native interop
@@ -80,6 +81,27 @@ namespace All_Messenger
             }
             catch { /* bỏ qua lỗi I/O khi ghi log, tránh làm crash app */ }
         }
+
+        private static void BringWindowToFront()
+        {
+            if (MainWindow is null) return;
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(MainWindow);
+            // Nếu đang bị minimize → restore; nếu đang bị che → đưa lên top
+            if (IsIconic(hwnd))
+                ShowWindow(hwnd, 9); // SW_RESTORE
+            else
+                ShowWindow(hwnd, 5); // SW_SHOW
+            SetForegroundWindow(hwnd);
+        }
+
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindow(nint hWnd, int nCmdShow);
+
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(nint hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsIconic(nint hWnd);
         /// <summary>
         /// Được gọi khi ứng dụng khởi động.
         /// </summary>
@@ -97,7 +119,8 @@ namespace All_Messenger
 
             // ── Init NotificationService với UI DispatcherQueue ──────────────────
             // Phải gọi sau khi MainWindow được tạo
-            NotificationService.Instance.Initialize(MainWindow.DispatcherQueue);
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(MainWindow);
+            NotificationService.Instance.Initialize(MainWindow.DispatcherQueue, hwnd);
 
             MainWindow.Activate();
         }

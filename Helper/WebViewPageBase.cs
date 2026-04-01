@@ -100,28 +100,11 @@ public abstract class WebViewPageBase : Page
 
         try
         {
-            _visibilityHandler = async (s, args) =>
+            _visibilityHandler = (s, args) =>
             {
-                try
-                {
-                    var core = WebView.CoreWebView2;
-                    if (core == null || !_isReady) return;
-
-                    if (!args.Visible)
-                    {
-                        if (!core.IsSuspended)
-                            await core.TrySuspendAsync();
-                    }
-                    else
-                    {
-                        if (core.IsSuspended)
-                            core.Resume();
-                    }
-                }
-                catch (System.Runtime.InteropServices.COMException)
-                {
-                    // Bỏ qua: WebView2 đang ở trạng thái tạm thời không hợp lệ, không ảnh hưởng nghiệp vụ.
-                }
+                // Không suspend WebView khi ẩn cửa sổ — WebView phải tiếp tục
+                // chạy JS để nhận push notification qua hook và postMessage.
+                // Nếu suspend, các JS hook sẽ dừng → không có toast khi app bị ẩn.
             };
 
             App.MainWindow.VisibilityChanged += _visibilityHandler;
