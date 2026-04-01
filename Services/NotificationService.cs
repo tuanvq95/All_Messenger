@@ -7,7 +7,6 @@ using System.Collections.Concurrent;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
-using System.Drawing.Text;
 using System.Runtime.InteropServices;
 using Windows.Data.Xml.Dom;
 using Windows.UI.Notifications;
@@ -158,31 +157,14 @@ public sealed class NotificationService
     // ── Tạo badge icon bằng GDI+ ────────────────────────────────────────────────
     private static nint CreateBadgeIcon(int count)
     {
-        // Vẽ trên canvas 32x32 để chữ sắc nét, Windows sẽ tự scale xuống khi hiển thị
         const int size = 32;
         using var bmp = new Bitmap(size, size, PixelFormat.Format32bppArgb);
         using var g = Graphics.FromImage(bmp);
         g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-        g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
         g.Clear(Color.Transparent);
 
-        // Vẽ nền tròn đỏ
         using var bgBrush = new SolidBrush(Color.FromArgb(220, 53, 53));
         g.FillEllipse(bgBrush, 1, 1, size - 2, size - 2);
-
-        // Vẽ chữ số
-        string text = count > 99 ? "99+" : count.ToString();
-        float fontSize = text.Length > 2 ? 9f : text.Length > 1 ? 11f : 14f;
-        using var font = new Font("Segoe UI", fontSize, System.Drawing.FontStyle.Bold, GraphicsUnit.Point);
-        using var textBrush = new SolidBrush(Color.White);
-        var sf = new StringFormat
-        {
-            Alignment = StringAlignment.Center,
-            LineAlignment = StringAlignment.Center,
-            FormatFlags = StringFormatFlags.NoWrap
-        };
-        g.DrawString(text, font, textBrush, new RectangleF(0, 0, size, size), sf);
 
         return bmp.GetHicon();
     }

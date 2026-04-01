@@ -77,10 +77,12 @@ public static class WebViewNotificationHelper
                 function onTitleChange() {
                     const match = document.title.match(/^\((\d+)\)/);
                     const count = match ? parseInt(match[1], 10) : 0;
-                    if (_prevCount === -1) {           // lần đầu: ghi nhớ giá trị ban đầu, không phát thông báo
+
+                    if (_prevCount === -1) {
                         _prevCount = count;
                         return;
                     }
+
                     if (count > _prevCount) {
                         postNotification('New messages', '', '');
                     }
