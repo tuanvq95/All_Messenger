@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using All_Messenger.Helper;
 using WinRT.Interop;
+using Microsoft.UI.Xaml.Media.Animation;
 
 namespace All_Messenger
 {
@@ -87,6 +88,53 @@ namespace All_Messenger
             ApplyTheme(LoadTheme());
             UpdateIcons();
             this.SystemBackdrop = new MicaBackdrop();
+            ((FrameworkElement)Content).Loaded += OnWindowLoaded;
+            this.Activated += (_, a) =>
+            {
+                bool active = a.WindowActivationState != Microsoft.UI.Xaml.WindowActivationState.Deactivated;
+                Services.NotificationService.Instance.SetWindowActive(active);
+            };
+        }
+
+        private async void OnWindowLoaded(object sender, RoutedEventArgs e)
+        {
+            ((FrameworkElement)Content).Loaded -= OnWindowLoaded;
+
+            // Wait until ALL WebViews finish their first navigation (up to 30s)
+            var deadline = DateTime.UtcNow.AddSeconds(30);
+            while (DateTime.UtcNow < deadline)
+            {
+                var (_, messenger) = GetWebViewInfo(AppIdMessenger);
+                var (_, teams) = GetWebViewInfo(AppIdTeams);
+                if (messenger && teams) break;
+                await Task.Delay(100);
+            }
+
+            await HideSplashAsync();
+            WelcomeView.Visibility = Visibility.Visible;
+        }
+
+        private Task HideSplashAsync()
+        {
+            var tcs = new TaskCompletionSource();
+            var fade = new DoubleAnimation
+            {
+                From = 1,
+                To = 0,
+                Duration = new Duration(TimeSpan.FromMilliseconds(1200)),
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+            };
+            var storyboard = new Storyboard();
+            Storyboard.SetTarget(fade, SplashView);
+            Storyboard.SetTargetProperty(fade, "Opacity");
+            storyboard.Children.Add(fade);
+            storyboard.Completed += (_, _) =>
+            {
+                SplashView.Visibility = Visibility.Collapsed;
+                tcs.SetResult();
+            };
+            storyboard.Begin();
+            return tcs.Task;
         }
 
         private void Reload_Click(object sender, RoutedEventArgs e)
@@ -148,7 +196,10 @@ namespace All_Messenger
         private Task OnTabShown(string appId)
         {
             var (webView, isReady) = GetWebViewInfo(appId);
-            if (isReady) webView?.CoreWebView2?.Resume();
+            if (isReady && webView?.CoreWebView2 != null && webView.CoreWebView2.IsSuspended) webView?.CoreWebView2?.Resume();
+
+            if (!string.IsNullOrEmpty(appId))
+                Services.NotificationService.Instance.ClearBadge(appId);
 
             // Xoá badge khi user chuyển sang tab đó
             if (!string.IsNullOrEmpty(appId))
