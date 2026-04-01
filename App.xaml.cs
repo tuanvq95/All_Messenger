@@ -43,15 +43,31 @@ namespace All_Messenger
         /// </summary>
         public App()
         {
-            InitializeComponent();
+            try
+            {
+                InitializeComponent();
+            }
+            catch (Exception ex)
+            {
+                ShowFatalError("Lỗi khởi tạo giao diện (InitializeComponent)", ex);
+                throw;
+            }
 
             // Bắt exception trên UI thread
             this.UnhandledException += App_UnhandledException;
 
-            // Đăng ký AppNotificationManager — hoạt động cả packaged lẫn unpackaged
-            AppNotificationManager.Default.NotificationInvoked += (_, _) =>
-                MainWindow?.DispatcherQueue.TryEnqueue(BringWindowToFront);
-            AppNotificationManager.Default.Register();
+            try
+            {
+                // Đăng ký AppNotificationManager — hoạt động cả packaged lẫn unpackaged
+                AppNotificationManager.Default.NotificationInvoked += (_, _) =>
+                    MainWindow?.DispatcherQueue.TryEnqueue(BringWindowToFront);
+                AppNotificationManager.Default.Register();
+            }
+            catch (Exception ex)
+            {
+                WriteLog("AppNotificationManager.Register", ex);
+                // Không fatal — app vẫn chạy được, chỉ mất toast notification
+            }
 
             // Bắt exception trên background thread và native interop
             AppDomain.CurrentDomain.UnhandledException += (_, e) =>
@@ -68,6 +84,7 @@ namespace All_Messenger
         private void App_UnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
         {
             WriteLog("App.UnhandledException", e.Exception);
+
             e.Handled = true;
         }
 
@@ -81,6 +98,7 @@ namespace All_Messenger
             }
             catch { /* bỏ qua lỗi I/O khi ghi log, tránh làm crash app */ }
         }
+
 
         private static void BringWindowToFront()
         {
@@ -102,6 +120,7 @@ namespace All_Messenger
 
         [DllImport("user32.dll")]
         private static extern bool IsIconic(nint hWnd);
+
         /// <summary>
         /// Được gọi khi ứng dụng khởi động.
         /// </summary>
