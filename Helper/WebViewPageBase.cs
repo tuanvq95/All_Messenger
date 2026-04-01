@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.Web.WebView2.Core;
 using System;
 using Windows.Foundation;
+using Windows.UI.WebUI;
 
 namespace All_Messenger.Helper;
 
@@ -29,6 +30,10 @@ public abstract class WebViewPageBase : Page
         await WebView.EnsureCoreWebView2Async(env);
 
         var core = WebView.CoreWebView2;
+        if (AppId == "Teams")
+        {
+            core.OpenDevToolsWindow();
+        }
 
         ConfigureWebView(core);
 
@@ -48,17 +53,19 @@ public abstract class WebViewPageBase : Page
 
         core.NavigationCompleted += (s, e) =>
         {
-            if (e.IsSuccess) _isReady = true;
+            // Đánh dấu WebView đã sẵn sàng sau lần đầu tiên hoàn thành navigation (dù success hay error)
+            if (!_isReady) _isReady = true;
         };
 
         WebView.Source = StartUri;
     }
 
-    // Override để thêm logic riêng (session detector, v.v.)
+    // Override để thêm logic riêng từng trang (ví dụ: session detector, cấu hình đặc biệt)
     protected virtual void OnCoreWebView2Ready(CoreWebView2 core) { }
 
     private static void ConfigureWebView(CoreWebView2 core)
     {
+        // Tắt các tính năng trình duyệt không cần thiết để giảm nhiễu và tối ưu hiệu năng
         var settings = core.Settings;
         settings.IsStatusBarEnabled = false;
         settings.IsZoomControlEnabled = false;
@@ -70,7 +77,7 @@ public abstract class WebViewPageBase : Page
         settings.IsSwipeNavigationEnabled = false;
     }
 
-    // ── Theme sync ─────────────────────────────────────────────────────────────
+    // ── Đồng bộ theme ──────────────────────────────────────────────────────────────
     private void ApplyColorSchemeFromCurrentTheme()
     {
         if (WebView.CoreWebView2 is null) return;
@@ -112,7 +119,7 @@ public abstract class WebViewPageBase : Page
                 }
                 catch (System.Runtime.InteropServices.COMException)
                 {
-                    // Non-critical: WebView2 may be in a transient invalid state.
+                    // Bỏ qua: WebView2 đang ở trạng thái tạm thời không hợp lệ, không ảnh hưởng nghiệp vụ.
                 }
             };
 
@@ -121,7 +128,7 @@ public abstract class WebViewPageBase : Page
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine(
-                $"[OnLoaded] thow Exception: {ex.Message}");
+                $"[OnLoaded] throw Exception: {ex.Message}");
         }
     }
 

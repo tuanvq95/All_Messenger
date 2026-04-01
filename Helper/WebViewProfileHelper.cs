@@ -9,7 +9,7 @@ namespace All_Messenger.Helper;
 
 public static class WebViewProfileHelper
 {
-    // Cache environment theo profileName — tránh tạo lại mỗi lần navigate
+    // Cache environment theo tên profile — tránh tạo lại mỗi lần navigate
     private static readonly ConcurrentDictionary<string, CoreWebView2Environment> _cache = new();
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new();
 
@@ -21,17 +21,17 @@ public static class WebViewProfileHelper
     );
 
     /// <summary>
-    /// Lấy hoặc tạo Environment cho profile đã cho.
-    /// Mỗi profileName → 1 thư mục userData riêng → session độc lập.
+    /// Lấy hoặc tạo mới CoreWebView2Environment cho profile đã chỉ định.
+    /// Mỗi profile có 1 thư mục userData riêng — đảm bảo session độc lập giữa các ứng dụng.
     /// </summary>
-    /// <param name="profileName">VD: "Teams", "Messenger", "Zalo"</param>
+    /// <param name="profileName">Tên profile, ví dụ: "Teams", "Messenger", "Zalo"</param>
     public static async Task<CoreWebView2Environment> GetOrCreateAsync(string profileName)
     {
-        // Trả luôn nếu đã cache
+        // Trả ngay nếu đã có trong cache
         if (_cache.TryGetValue(profileName, out var cached))
             return cached;
 
-        // Dùng per-profile lock để tránh tạo 2 Environment song song cho cùng 1 profile
+        // Dùng lock riêng từng profile — tránh tạo 2 Environment song song cho cùng một profile
         var sem = _locks.GetOrAdd(profileName, _ => new SemaphoreSlim(1, 1));
         await sem.WaitAsync();
         try
@@ -75,7 +75,7 @@ public static class WebViewProfileHelper
     }
 
     /// <summary>
-    /// Xoá cache 1 profile (VD: sau khi user logout, muốn reset session).
+    /// Xóa cache của một profile khỏi bộ nhớ — dùng khi muốn reset session (ví dụ sau khi user đăng xuất).
     /// </summary>
     public static void InvalidateProfile(string profileName)
     {
