@@ -26,39 +26,41 @@ public abstract class WebViewPageBase : Page
 
     protected async void InitWebView()
     {
-        var env = await WebViewProfileHelper.GetOrCreateAsync(AppId);
-        await WebView.EnsureCoreWebView2Async(env);
-
-        var core = WebView.CoreWebView2;
-        // TODO: Debug
-        //if (AppId == "Teams")
-        //{
-        //    core.OpenDevToolsWindow();
-        //}
-
-        ConfigureWebView(core);
-
-        core.PermissionRequested += (s, a) =>
-            WebViewNotificationHelper.AllowNotificationPermission(s, a);
-
-        core.WebMessageReceived += (s, e) =>
-            WebViewNotificationHelper.HandleWebMessage(AppId, e);
-
-        await WebViewNotificationHelper.InjectNotificationHookAsync(core);
-
-        // Hook cho page-specific setup (session detector, v.v.)
-        OnCoreWebView2Ready(core);
-
-        // Apply app theme vào WebView ngay khi khởi tạo xong
-        ApplyColorSchemeFromCurrentTheme();
-
-        core.NavigationCompleted += (s, e) =>
+        try
         {
-            // Đánh dấu WebView đã sẵn sàng sau lần đầu tiên hoàn thành navigation (dù success hay error)
-            if (!_isReady) _isReady = true;
-        };
+            var env = await WebViewProfileHelper.GetOrCreateAsync(AppId);
+            await WebView.EnsureCoreWebView2Async(env);
 
-        WebView.Source = StartUri;
+            var core = WebView.CoreWebView2;
+
+            ConfigureWebView(core);
+
+            core.PermissionRequested += (s, a) =>
+                WebViewNotificationHelper.AllowNotificationPermission(s, a);
+
+            core.WebMessageReceived += (s, e) =>
+                WebViewNotificationHelper.HandleWebMessage(AppId, e);
+
+            await WebViewNotificationHelper.InjectNotificationHookAsync(core);
+
+            // Hook cho page-specific setup (session detector, v.v.)
+            OnCoreWebView2Ready(core);
+
+            // Apply app theme vào WebView ngay khi khởi tạo xong
+            ApplyColorSchemeFromCurrentTheme();
+
+            core.NavigationCompleted += (s, e) =>
+            {
+                if (!_isReady) _isReady = true;
+            };
+
+            WebView.Source = StartUri;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"[InitWebView:{AppId}] Failed: {ex.Message}");
+        }
     }
 
     // Override để thêm logic riêng từng trang (ví dụ: session detector, cấu hình đặc biệt)

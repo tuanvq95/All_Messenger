@@ -234,13 +234,7 @@ public sealed class NotificationService
     // ── Điểm nhập thông báo ─────────────────────────────────────────────────────
     public void HandleWebNotification(string appId, string title, string body, string? icon = null)
     {
-        if (!HasSession(appId))
-        {
-            System.Diagnostics.Debug.WriteLine(
-                $"[Noti] Bỏ qua '{appId}' — chưa có session.");
-            return;
-        }
-
+        if (!HasSession(appId)) return;
         if (_isWindowActive) return;
 
         if (GetNotificationMode() != NotificationModeSilent)

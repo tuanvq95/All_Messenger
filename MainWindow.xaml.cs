@@ -196,12 +196,16 @@ namespace All_Messenger
         private Task OnTabShown(string appId)
         {
             var (webView, isReady) = GetWebViewInfo(appId);
-            if (isReady && webView?.CoreWebView2 != null && webView.CoreWebView2.IsSuspended) webView?.CoreWebView2?.Resume();
+            try
+            {
+                if (isReady && webView?.CoreWebView2 != null && webView.CoreWebView2.IsSuspended)
+                    webView.CoreWebView2.Resume();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[OnTabShown:{appId}] Resume failed: {ex.Message}");
+            }
 
-            if (!string.IsNullOrEmpty(appId))
-                Services.NotificationService.Instance.ClearBadge(appId);
-
-            // Xoá badge khi user chuyển sang tab đó
             if (!string.IsNullOrEmpty(appId))
                 Services.NotificationService.Instance.ClearBadge(appId);
 
@@ -213,7 +217,7 @@ namespace All_Messenger
             try
             {
                 var (webView, isReady) = GetWebViewInfo(appId);
-                if (webView?.CoreWebView2 != null && isReady)
+                if (webView?.CoreWebView2 != null && isReady && !webView.CoreWebView2.IsSuspended)
                 {
                     await webView.CoreWebView2.TrySuspendAsync();
                 }
@@ -221,7 +225,7 @@ namespace All_Messenger
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine(
-                    $"[OnTabHidden] thow Exception: {ex.Message}");
+                    $"[OnTabHidden:{appId}] Failed: {ex.Message}");
             }
         }
 

@@ -160,9 +160,6 @@ public static class WebViewNotificationHelper
             if (!root.TryGetProperty("type", out var typeProp)) return;
             string msgType = typeProp.GetString() ?? "";
 
-            System.Diagnostics.Debug.WriteLine(
-                $"[WebMsg] appId='{appId}' type='{msgType}' raw={raw}");
-
             if (msgType == "badge")
             {
                 int count = root.TryGetProperty("count", out var cp) ? cp.GetInt32() : 0;
