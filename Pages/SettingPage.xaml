@@ -39,7 +39,7 @@
                         <RadioButton x:Name="RadioToast"
                                      Tag="Toast">
                             <StackPanel Spacing="2">
-                                <TextBlock Text="Toast" FontWeight="SemiBold" FontSize="13"/>
+                                <TextBlock Text="Thông báo nổi" FontWeight="SemiBold" FontSize="13"/>
                                 <TextBlock Text="Hiển thị popup thông báo kèm nội dung tin nhắn."
                                            FontSize="12"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
@@ -48,7 +48,7 @@
                         <RadioButton x:Name="RadioSilent"
                                      Tag="Silent">
                             <StackPanel Spacing="2">
-                                <TextBlock Text="Im lặng" FontWeight="SemiBold" FontSize="13"/>
+                                <TextBlock Text="Thông báo ẩn" FontWeight="SemiBold" FontSize="13"/>
                                 <TextBlock Text="Chỉ hiện số badge trên taskbar, không hiện popup."
                                            FontSize="12"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
