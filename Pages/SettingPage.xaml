@@ -8,24 +8,56 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <ScrollViewer Padding="24">
-        <StackPanel Spacing="24" MaxWidth="600" HorizontalAlignment="Left">
+    <ScrollViewer Padding="32 28">
+        <StackPanel Spacing="28" HorizontalAlignment="Stretch">
+
+            <!-- Tiêu đề trang -->
             <TextBlock Text="Cài đặt" FontSize="28" FontWeight="SemiBold"/>
 
-            <!-- Thông báo -->
-            <StackPanel Spacing="12">
-                <TextBlock Text="Thông báo" FontSize="16" FontWeight="SemiBold"/>
+            <!-- ── Thông báo ── -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="20 16"
+                    HorizontalAlignment="Stretch">
+                <StackPanel Spacing="12">
 
-                <RadioButtons x:Name="NotificationModeGroup"
-                              SelectionChanged="NotificationModeGroup_SelectionChanged">
-                    <RadioButton x:Name="RadioToast"
-                                 Content="Toast – Hiển thị popup thông báo đầy đủ"
-                                 Tag="Toast"/>
-                    <RadioButton x:Name="RadioSilent"
-                                 Content="Im lặng – Chỉ badge số và âm thanh trên taskbar"
-                                 Tag="Silent"/>
-                </RadioButtons>
-            </StackPanel>
+                    <TextBlock Text="Thông báo"
+                               FontSize="15"
+                               FontWeight="SemiBold"/>
+
+                    <TextBlock Text="Kiểu thông báo khi có tin nhắn mới."
+                               FontSize="13"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               TextWrapping="Wrap"/>
+
+                    <RadioButtons x:Name="NotificationModeGroup"
+                                  Margin="8 4 0 0"
+                                  MaxColumns="1"
+                                  SelectionChanged="NotificationModeGroup_SelectionChanged">
+                        <RadioButton x:Name="RadioToast"
+                                     Tag="Toast">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="Toast" FontWeight="SemiBold" FontSize="13"/>
+                                <TextBlock Text="Hiển thị popup thông báo kèm nội dung tin nhắn."
+                                           FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton x:Name="RadioSilent"
+                                     Tag="Silent">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="Im lặng" FontWeight="SemiBold" FontSize="13"/>
+                                <TextBlock Text="Chỉ hiện số badge trên taskbar, không hiện popup."
+                                           FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                        </RadioButton>
+                    </RadioButtons>
+                </StackPanel>
+            </Border>
+
         </StackPanel>
     </ScrollViewer>
 </Page>
