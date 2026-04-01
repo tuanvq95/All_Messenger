@@ -30,10 +30,11 @@ public abstract class WebViewPageBase : Page
         await WebView.EnsureCoreWebView2Async(env);
 
         var core = WebView.CoreWebView2;
-        if (AppId == "Teams")
-        {
-            core.OpenDevToolsWindow();
-        }
+        // TODO: Debug
+        //if (AppId == "Teams")
+        //{
+        //    core.OpenDevToolsWindow();
+        //}
 
         ConfigureWebView(core);
 
