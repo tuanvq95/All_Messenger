@@ -54,6 +54,13 @@ public sealed class CustomServerPage : WebViewPageBase
     protected override void OnCoreWebView2Ready(CoreWebView2 core)
     {
         core.NavigationCompleted += OnNavigationCompleted;
+
+        // Custom server không có URL cố định để phán đoán login,
+        // nên coi là đã có session ngay khi navigation thành công.
+        WebViewNotificationHelper.AttachSessionDetector(
+            _appId, core,
+            url => true,
+            resetOnFalse: false);
     }
 
     /// <summary>Điều hướng WebView đến URL mới (dùng khi người dùng chỉnh sửa server từ Settings).</summary>

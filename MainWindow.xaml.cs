@@ -101,6 +101,8 @@ namespace All_Messenger
                 bool active = a.WindowActivationState != Microsoft.UI.Xaml.WindowActivationState.Deactivated;
                 Services.NotificationService.Instance.SetWindowActive(active);
             };
+
+            Services.NotificationService.Instance.TabBadgeChanged += OnTabBadgeChanged;
         }
 
         private async void OnWindowLoaded(object sender, RoutedEventArgs e)
@@ -202,6 +204,8 @@ namespace All_Messenger
 
         private Task OnTabShown(string appId)
         {
+            Services.NotificationService.Instance.SetActiveTab(appId);
+
             var (webView, isReady) = GetWebViewInfo(appId);
             try
             {
@@ -249,6 +253,23 @@ namespace All_Messenger
             AppIdMessenger => (MessengerPage.WebView, MessengerPage.IsReady),
             _ => _customPages.TryGetValue(appId, out var p) ? (p.WebView, p.IsReady) : (null, false)
         };
+
+        // ── Badge trên nav item ────────────────────────────────────────────────────────
+
+        private void OnTabBadgeChanged(string appId, int count)
+        {
+            // Tìm tag tương ứng với appId
+            string? tag = _tabs.FirstOrDefault(kv => kv.Value.AppId == appId).Key;
+            if (tag is null) return;
+
+            var navItem = NavView.MenuItems
+                .OfType<NavigationViewItem>()
+                .FirstOrDefault(i => i.Tag?.ToString() == tag);
+
+            if (navItem is null) return;
+
+            navItem.InfoBadge = count > 0 ? new InfoBadge { Value = count } : null;
+        }
 
         // ── Custom Server tabs ────────────────────────────────────────────────────
 
@@ -332,6 +353,21 @@ namespace All_Messenger
         {
             NavView.SelectedItem = NavView.SettingsItem;
             await SwitchTab(TabSettings);
+        }
+
+        internal async void NavigateToTab(string appId)
+        {
+            string? tag = _tabs.FirstOrDefault(kv => kv.Value.AppId == appId).Key;
+            if (tag is null) return;
+
+            var navItem = NavView.MenuItems
+                .OfType<NavigationViewItem>()
+                .FirstOrDefault(i => i.Tag?.ToString() == tag);
+
+            if (navItem is not null)
+                NavView.SelectedItem = navItem;
+
+            await SwitchTab(tag);
         }
         #endregion
 
