@@ -49,7 +49,7 @@ namespace All_Messenger
             }
             catch (Exception ex)
             {
-                ShowFatalError("Lỗi khởi tạo giao diện (InitializeComponent)", ex);
+                WriteLog("Lỗi khởi tạo giao diện (InitializeComponent)", ex);
                 throw;
             }
 
