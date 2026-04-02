@@ -8,7 +8,7 @@
 ; ============================================================
 
 #define AppName      "All-in-One Messenger"
-#define AppVersion   "1.1.0"
+#define AppVersion   "1.1.1"
 #define AppPublisher "MrRom"
 #define AppExeName   "AllinOneMessenger.exe"
 #define AppIcon      "..\Assets\icon.ico"
@@ -21,9 +21,9 @@ AppName={#AppName}
 AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
 AppPublisher={#AppPublisher}
-AppPublisherURL=https://github.com/
-AppSupportURL=https://github.com/
-AppUpdatesURL=https://github.com/
+AppPublisherURL=https://github.com/tuanvq95/All_Messenger
+AppSupportURL=https://github.com/tuanvq95/All_Messenger
+AppUpdatesURL=https://github.com/tuanvq95/All_Messenger
 
 ; Thư mục cài đặt mặc định
 DefaultDirName={autopf}\{#AppName}
