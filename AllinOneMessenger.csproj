@@ -21,6 +21,10 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <PlatformTarget>x64</PlatformTarget>
 
+    <!-- Không sinh debug symbols trong Release -->
+    <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
+    <DebugSymbols Condition="'$(Configuration)' == 'Release'">false</DebugSymbols>
+
     <!-- Self-contained single file -->
     <SelfContained>true</SelfContained>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
@@ -29,7 +33,11 @@
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile> -->
 
     <PublishTrimmed>false</PublishTrimmed>
-    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">true</PublishReadyToRun>
+    <!-- ReadyToRun tắt để giảm size: bỏ precompiled native code, khởi động chậm hơn chút -->
+    <PublishReadyToRun>false</PublishReadyToRun>
+
+    <!-- Chỉ giữ locale en-US và vi (Tiếng Anh + Tiếng Việt), loại bỏ ~50 thư mục locale thừa -->
+    <SatelliteResourceLanguages>en-US;vi</SatelliteResourceLanguages>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="Pages\MessengerPage.xaml" />
@@ -131,4 +139,21 @@
   <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
     <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
   </PropertyGroup>
+
+  <!-- Xóa các thư mục locale thừa của WindowsAppSDK sau khi publish (Release only) -->
+  <Target Name="RemoveUnusedLocales" AfterTargets="Publish" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <_PublishDirFull>$([System.IO.Path]::GetFullPath('$(PublishDir)'))</_PublishDirFull>
+    </PropertyGroup>
+    <Exec Command="powershell -NoProfile -NonInteractive -Command &quot;$keep=@('en-US','vi','Assets'); Get-ChildItem -Path '$(_PublishDirFull)' -Directory | Where-Object { $keep -notcontains $_.Name } | Remove-Item -Recurse -Force&quot;" />
+    <Message Text="Removed unused locale folders from $(_PublishDirFull)" Importance="high" />
+  </Target>
+
+  <!-- Xóa locale thừa sau khi build thông thường (Release only) -->
+  <Target Name="RemoveUnusedLocalesAfterBuild" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <_OutDirFull>$([System.IO.Path]::GetFullPath('$(OutDir)'))</_OutDirFull>
+    </PropertyGroup>
+    <Exec Command="powershell -NoProfile -NonInteractive -Command &quot;$keep=@('en-US','vi','Assets'); Get-ChildItem -Path '$(_OutDirFull)' -Directory | Where-Object { $keep -notcontains $_.Name } | Remove-Item -Recurse -Force&quot;" />
+  </Target>
 </Project>

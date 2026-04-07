@@ -41,6 +41,10 @@ public sealed class NotificationService
     private DispatcherQueue? _dispatcherQueue;
     private nint _hwnd;
     private bool _isWindowActive = false;
+    private string _activeTabAppId = string.Empty;
+
+    // Fired on the UI thread whenever a tab's badge count changes (appId, count)
+    public event Action<string, int>? TabBadgeChanged;
     private NotificationService() { }
 
     // ── Khởi tạo ──────────────────────────────────────────────────────────────
@@ -49,6 +53,9 @@ public sealed class NotificationService
         _dispatcherQueue = dispatcherQueue;
         _hwnd = hwnd;
     }
+    // ── Tab đang hiển thị ────────────────────────────────────────────────────
+    public void SetActiveTab(string appId) => _activeTabAppId = appId;
+
     // ── Trạng thái cửa sổ ───────────────────────────────────────────────────
     public void SetWindowActive(bool active)
     {
@@ -82,19 +89,25 @@ public sealed class NotificationService
     {
         _badgeCounts[appId] = 0;
         UpdateTaskbarBadge();
+        _dispatcherQueue?.TryEnqueue(() => TabBadgeChanged?.Invoke(appId, 0));
     }
 
     // Đặt badge tuyệt đối từ title (Hook 3) — không hiển thị toast
     public void SetBadgeDirect(string appId, int count)
     {
         if (!HasSession(appId)) return;
-        if (_isWindowActive) { _badgeCounts[appId] = 0; return; }
-        _badgeCounts[appId] = count;
 
-        int total = 0;
-        foreach (var c in _badgeCounts.Values) total += c;
+        // Taskbar badge: không hiển thị khi cửa sổ đang focus
+        if (_isWindowActive)
+            _badgeCounts[appId] = 0;
+        else
+            _badgeCounts[appId] = count;
 
         UpdateTaskbarBadge();
+
+        // Tab nav badge: hiển thị nếu tab không phải tab đang active (bất kể window focus)
+        if (appId != _activeTabAppId)
+            _dispatcherQueue?.TryEnqueue(() => TabBadgeChanged?.Invoke(appId, count));
     }
 
     private void IncrementBadge(string appId)
@@ -241,6 +254,19 @@ public sealed class NotificationService
             ShowToast(appId, title, body, icon);
     }
 
+    // ── Lấy tên hiển thị từ settings (cho custom server) ─────────────────────────
+    private static string GetAppDisplayName(string appId)
+    {
+        // Các app tích hợp sẵn đã có tên đúng làm appId
+        if (appId is "Teams" or "Messenger" or "Zalo")
+            return appId;
+
+        // Custom server: appId là short GUID → tra tên từ settings
+        var servers = All_Messenger.Helper.AppSettings.GetCustomServers();
+        var match = servers.Find(s => s.Id == appId);
+        return match?.Name is { Length: > 0 } name ? name : appId;
+    }
+
     // ── Hiển thị toast ───────────────────────────────────────────────────────────
     private void ShowToast(string appId, string title, string body, string? icon)
     {
@@ -248,10 +274,12 @@ public sealed class NotificationService
         {
             try
             {
+                string displayName = GetAppDisplayName(appId);
                 var displayTitle = !string.IsNullOrWhiteSpace(title)
-                    ? $"[{appId}] {title}" : appId;
+                    ? $"[{displayName}] {title}" : displayName;
 
                 var builder = new AppNotificationBuilder()
+                    .AddArgument("appId", appId)
                     .AddText(displayTitle);
 
                 if (!string.IsNullOrWhiteSpace(body))

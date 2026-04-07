@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:All_Messenger.Pages"
+    xmlns:helper="using:All_Messenger.Helper"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
@@ -55,6 +56,112 @@
                             </StackPanel>
                         </RadioButton>
                     </RadioButtons>
+                </StackPanel>
+            </Border>
+
+            <!-- ── Chat server tùy chỉnh ── -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="20 16"
+                    HorizontalAlignment="Stretch">
+                <StackPanel Spacing="12">
+
+                    <TextBlock Text="Chat server tùy chỉnh"
+                               FontSize="15"
+                               FontWeight="SemiBold"/>
+
+                    <TextBlock Text="Thêm bất kỳ ứng dụng chat web nào vào menu chính."
+                               FontSize="13"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               TextWrapping="Wrap"/>
+
+                    <!-- Danh sách server đã lưu -->
+                    <ListView x:Name="ServerListView"
+                              ItemsSource="{x:Bind CustomServers}"
+                              SelectionMode="None"
+                              Margin="-4 0">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="Padding" Value="4 4"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="helper:CustomServerInfo">
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Server icon -->
+                                    <Border Grid.Column="0"
+                                            Width="36" Height="36"
+                                            CornerRadius="6"
+                                            Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                            VerticalAlignment="Center">
+                                        <FontIcon Glyph="{x:Bind IconGlyph, Mode=OneWay}"
+                                                  FontFamily="Segoe MDL2 Assets"
+                                                  FontSize="16"
+                                                  Foreground="White"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"/>
+                                    </Border>
+
+                                    <!-- Name + URL -->
+                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Bind Name, Mode=OneWay}"
+                                                   FontWeight="SemiBold"
+                                                   FontSize="13"/>
+                                        <TextBlock Text="{x:Bind Url, Mode=OneWay}"
+                                                   FontSize="12"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+
+                                    <!-- Action buttons -->
+                                    <StackPanel Grid.Column="2"
+                                                Orientation="Horizontal"
+                                                Spacing="2"
+                                                VerticalAlignment="Center">
+                                        <Button Tag="{x:Bind Id}"
+                                                Click="EditServer_Click"
+                                                Style="{ThemeResource SubtleButtonStyle}"
+                                                ToolTipService.ToolTip="Chỉnh sửa server">
+                                            <FontIcon FontFamily="Segoe MDL2 Assets"
+                                                      Glyph="&#xE70F;"
+                                                      FontSize="14"/>
+                                        </Button>
+                                        <Button Tag="{x:Bind Id}"
+                                                Click="DeleteServer_Click"
+                                                Style="{ThemeResource SubtleButtonStyle}"
+                                                ToolTipService.ToolTip="Xóa server">
+                                            <FontIcon FontFamily="Segoe MDL2 Assets"
+                                                      Glyph="&#xE74D;"
+                                                      FontSize="14"/>
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <!-- Add button -->
+                    <Button x:Name="AddServerButton"
+                            Click="AddServer_Click"
+                            Style="{ThemeResource AccentButtonStyle}"
+                            HorizontalAlignment="Left">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon FontFamily="Segoe MDL2 Assets"
+                                      Glyph="&#xE710;"
+                                      FontSize="14"/>
+                            <TextBlock Text="Thêm server"/>
+                        </StackPanel>
+                    </Button>
+
                 </StackPanel>
             </Border>
 

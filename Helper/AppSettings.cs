@@ -53,4 +53,20 @@ internal static class AppSettings
     _cache[key] = value;
     Save();
   }
+
+  // ── Custom Servers ───────────────────────────────────────────────────────────
+  private const string CustomServersKey = "CustomServers";
+
+  public static List<CustomServerInfo> GetCustomServers()
+  {
+    var json = Get(CustomServersKey);
+    if (string.IsNullOrEmpty(json)) return new();
+    try { return JsonSerializer.Deserialize<List<CustomServerInfo>>(json) ?? new(); }
+    catch { return new(); }
+  }
+
+  public static void SaveCustomServers(List<CustomServerInfo> servers)
+  {
+    Set(CustomServersKey, JsonSerializer.Serialize(servers));
+  }
 }

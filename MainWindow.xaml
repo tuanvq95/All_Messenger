@@ -96,7 +96,7 @@
                 </NavigationViewItem>
             </NavigationView.MenuItems>
 
-            <Grid>
+            <Grid x:Name="ContentGrid">
                 <pages:MessengerPage x:Name="MessengerPage" Visibility="Collapsed"/>
                 <pages:ZaloPage      x:Name="ZaloPage"      Visibility="Collapsed"/>
                 <pages:TeamsPage     x:Name="TeamsPage"     Visibility="Collapsed"/>

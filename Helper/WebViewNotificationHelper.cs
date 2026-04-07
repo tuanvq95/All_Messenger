@@ -43,7 +43,7 @@ public static class WebViewNotificationHelper
                 }
 
                 // ── Hook 1: window.Notification constructor ──────────────────────────────
-                // Bắt Messenger & Zalo (dùng new Notification() từ page context).
+                // Bắt Messenger, Zalo, Mattermost (dùng new Notification() từ page context).
                 const _OriginalNotification = window.Notification;
 
                 function HookedNotification(title, options) {
@@ -52,12 +52,35 @@ public static class WebViewNotificationHelper
                         options && options.body ? options.body : '',
                         options && options.icon ? options.icon : ''
                     );
-                    return new _OriginalNotification(title, options);
+
+                    // Trả về mock object thay vì gọi API thật.
+                    // WebView2 không thể hiển thị OS notification trực tiếp → gọi thật sẽ
+                    // kích hoạt onerror trong trang (Mattermost notifications.ts:92).
+                    const mock = Object.create(_OriginalNotification.prototype);
+                    mock.title  = title || '';
+                    mock.body   = options && options.body  ? options.body  : '';
+                    mock.icon   = options && options.icon  ? options.icon  : '';
+                    mock.tag    = options && options.tag   ? options.tag   : '';
+                    mock.data   = options && options.data  ? options.data  : null;
+                    mock.silent = options && options.silent != null ? options.silent : false;
+                    mock.onclick  = null;
+                    mock.onclose  = null;
+                    mock.onerror  = null;
+                    mock.onshow   = null;
+                    mock.close = function() {
+                        if (typeof mock.onclose === 'function') mock.onclose(new Event('close'));
+                    };
+                    // Thông báo cho trang biết notification đã "hiện" thành công
+                    setTimeout(function() {
+                        if (typeof mock.onshow === 'function') mock.onshow(new Event('show'));
+                    }, 0);
+                    return mock;
                 }
 
                 HookedNotification.prototype = _OriginalNotification.prototype;
                 Object.defineProperty(HookedNotification, 'permission', { get: () => 'granted' });
                 HookedNotification.requestPermission = () => Promise.resolve('granted');
+                HookedNotification.maxActions = _OriginalNotification.maxActions || 2;
                 window.Notification = HookedNotification;
 
                 // ── Hook 2: ServiceWorkerRegistration.showNotification ───────────────────────────────────
@@ -124,6 +147,7 @@ public static class WebViewNotificationHelper
                         if (attachTitleObserver()) _rootObserver.disconnect();
                     }, { once: true });
                 }
+
             })();
             """;
 
