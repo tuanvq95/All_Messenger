@@ -56,6 +56,9 @@ public static class WebViewProfileHelper
                     "--disable-default-apps",
                     "--no-first-run",
                     "--autoplay-policy=no-user-gesture-required",
+                    // Dùng password store đơn giản, tránh gọi DPAPI/Windows Credential Manager
+                    // → ngăn app bị treo ~5s khi WebView2 lưu password lần đầu
+                    "--password-store=basic",
                 ])
             };
 
