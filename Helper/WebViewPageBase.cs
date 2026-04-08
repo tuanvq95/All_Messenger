@@ -74,8 +74,8 @@ public abstract class WebViewPageBase : Page
         settings.IsZoomControlEnabled = false;
         settings.IsBuiltInErrorPageEnabled = false;
         settings.IsPinchZoomEnabled = false;
-        settings.IsGeneralAutofillEnabled = false;
-        settings.IsPasswordAutosaveEnabled = false;
+        settings.IsGeneralAutofillEnabled = true;
+        settings.IsPasswordAutosaveEnabled = true;
         settings.AreBrowserAcceleratorKeysEnabled = false;
         settings.IsSwipeNavigationEnabled = false;
     }
