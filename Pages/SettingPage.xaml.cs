@@ -364,5 +364,7 @@ public sealed partial class SettingPage : Page
         AppSettings.SaveCustomServers(servers);
 
         App.MainWindow?.RemoveCustomServerTab(id);
+
+        WebViewProfileHelper.DeleteProfileData(id);
     }
 }
