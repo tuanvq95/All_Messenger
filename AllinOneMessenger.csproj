@@ -6,6 +6,9 @@
     <RootNamespace>All_in_One_Messenger</RootNamespace>
     <AssemblyTitle>All in One Messenger</AssemblyTitle>
     <Product>All in One Messenger</Product>
+    <Version>1.0.1</Version>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
+    <FileVersion>1.0.1.0</FileVersion>
     <UseWinUI>true</UseWinUI>
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
