@@ -8,12 +8,12 @@
 ; ============================================================
 
 #define AppName      "All-in-One Messenger"
-#define AppVersion   "1.0.0"
+#define AppVersion   "1.0.1"
 #define AppPublisher "MrRom"
 #define AppExeName   "AllinOneMessenger.exe"
 #define AppIcon      "..\Assets\icon.ico"
 ; Đường dẫn publish (tương đối từ vị trí file .iss này)
-#define PublishDir   "..\bin\x64\Release\net8.0-windows10.0.19041.0\win-x64"
+#define PublishDir   "..\bin\Release\net8.0-windows10.0.19041.0\win-x64"
 
 [Setup]
 AppId={{9172cfc1-06cb-4d83-9285-4e52f0d3bd7d}
@@ -21,9 +21,9 @@ AppName={#AppName}
 AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
 AppPublisher={#AppPublisher}
-AppPublisherURL=https://github.com/
-AppSupportURL=https://github.com/
-AppUpdatesURL=https://github.com/
+AppPublisherURL=https://github.com/tuanvq95/All_Messenger
+AppSupportURL=https://github.com/tuanvq95/All_Messenger
+AppUpdatesURL=https://github.com/tuanvq95/All_Messenger
 
 ; Thư mục cài đặt mặc định
 DefaultDirName={autopf}\{#AppName}

@@ -59,8 +59,14 @@ namespace All_Messenger
             try
             {
                 // Đăng ký AppNotificationManager — hoạt động cả packaged lẫn unpackaged
-                AppNotificationManager.Default.NotificationInvoked += (_, _) =>
-                    MainWindow?.DispatcherQueue.TryEnqueue(BringWindowToFront);
+                AppNotificationManager.Default.NotificationInvoked += (_, args) =>
+                    MainWindow?.DispatcherQueue.TryEnqueue(() =>
+                    {
+                        BringWindowToFront();
+                        if (args.Arguments.TryGetValue("appId", out string? appId) &&
+                            !string.IsNullOrEmpty(appId))
+                            MainWindow?.NavigateToTab(appId);
+                    });
                 AppNotificationManager.Default.Register();
             }
             catch (Exception ex)

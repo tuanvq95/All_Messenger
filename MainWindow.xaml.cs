@@ -6,8 +6,10 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using All_Messenger.Helper;
+using All_Messenger.Pages;
 using WinRT.Interop;
 using Microsoft.UI.Xaml.Media.Animation;
 
@@ -59,6 +61,7 @@ namespace All_Messenger
         private readonly BitmapImage _teamsDark;
 
         private Dictionary<string, (FrameworkElement Page, string AppId)> _tabs = null!;
+        private readonly Dictionary<string, CustomServerPage> _customPages = new();
         private string _activeTab = string.Empty;
 
         public MainWindow()
@@ -80,6 +83,10 @@ namespace All_Messenger
                 [TabSettings] = (SettingPage, string.Empty),
             };
 
+            // Nạp các custom server đã lưu
+            foreach (var server in AppSettings.GetCustomServers())
+                AddCustomServerTab(server);
+
             var hwnd = WindowNative.GetWindowHandle(this);
             _appWindow = AppWindow.GetFromWindowId(Win32Interop.GetWindowIdFromWindow(hwnd));
             _appWindow.TitleBar.ExtendsContentIntoTitleBar = true;
@@ -94,6 +101,8 @@ namespace All_Messenger
                 bool active = a.WindowActivationState != Microsoft.UI.Xaml.WindowActivationState.Deactivated;
                 Services.NotificationService.Instance.SetWindowActive(active);
             };
+
+            Services.NotificationService.Instance.TabBadgeChanged += OnTabBadgeChanged;
         }
 
         private async void OnWindowLoaded(object sender, RoutedEventArgs e)
@@ -195,6 +204,8 @@ namespace All_Messenger
 
         private Task OnTabShown(string appId)
         {
+            Services.NotificationService.Instance.SetActiveTab(appId);
+
             var (webView, isReady) = GetWebViewInfo(appId);
             try
             {
@@ -222,6 +233,12 @@ namespace All_Messenger
                     await webView.CoreWebView2.TrySuspendAsync();
                 }
             }
+            catch (System.Runtime.InteropServices.COMException)
+            {
+                // TrySuspendAsync fails with COMException (0x8007139F) when the WebView
+                // is mid-navigation or in an invalid state for suspension.
+                // This is expected and safe to ignore — suspend is a best-effort optimization.
+            }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine(
@@ -234,8 +251,124 @@ namespace All_Messenger
             AppIdZalo => (ZaloPage.WebView, ZaloPage.IsReady),
             AppIdTeams => (TeamsPage.WebView, TeamsPage.IsReady),
             AppIdMessenger => (MessengerPage.WebView, MessengerPage.IsReady),
-            _ => (null, false)
+            _ => _customPages.TryGetValue(appId, out var p) ? (p.WebView, p.IsReady) : (null, false)
         };
+
+        // ── Badge trên nav item ────────────────────────────────────────────────────────
+
+        private void OnTabBadgeChanged(string appId, int count)
+        {
+            // Tìm tag tương ứng với appId
+            string? tag = _tabs.FirstOrDefault(kv => kv.Value.AppId == appId).Key;
+            if (tag is null) return;
+
+            var navItem = NavView.MenuItems
+                .OfType<NavigationViewItem>()
+                .FirstOrDefault(i => i.Tag?.ToString() == tag);
+
+            if (navItem is null) return;
+
+            navItem.InfoBadge = count > 0 ? new InfoBadge { Value = count } : null;
+        }
+
+        // ── Custom Server tabs ────────────────────────────────────────────────────
+
+        internal void AddCustomServerTab(CustomServerInfo info)
+        {
+            if (_tabs.ContainsKey(info.Id)) return;
+
+            var page = new CustomServerPage(info);
+            page.Visibility = Visibility.Collapsed;
+            ContentGrid.Children.Add(page);
+
+            var navItem = new NavigationViewItem
+            {
+                Content = info.Name,
+                Tag = info.Id,
+                Icon = new FontIcon
+                {
+                    Glyph = info.IconGlyph,
+                    FontFamily = new FontFamily("Segoe MDL2 Assets")
+                }
+            };
+            NavView.MenuItems.Add(navItem);
+
+            _customPages[info.Id] = page;
+            _tabs[info.Id] = (page, info.Id);
+        }
+
+        internal void RemoveCustomServerTab(string id)
+        {
+            if (!_tabs.TryGetValue(id, out var entry)) return;
+
+            // If it's the active tab, show welcome screen
+            if (_activeTab == id)
+            {
+                WelcomeView.Visibility = Visibility.Visible;
+                NavView.SelectedItem = null;
+                _activeTab = string.Empty;
+            }
+
+            // Remove page from visual tree
+            ContentGrid.Children.Remove((UIElement)entry.Page);
+
+            // Remove NavItem
+            var navItem = NavView.MenuItems
+                .OfType<NavigationViewItem>()
+                .FirstOrDefault(i => i.Tag?.ToString() == id);
+            if (navItem is not null)
+                NavView.MenuItems.Remove(navItem);
+
+            _tabs.Remove(id);
+            _customPages.Remove(id);
+        }
+
+        internal void UpdateCustomServerTabIcon(string id, string glyph)
+        {
+            var navItem = NavView.MenuItems
+                .OfType<NavigationViewItem>()
+                .FirstOrDefault(i => i.Tag?.ToString() == id);
+            if (navItem?.Icon is FontIcon fi)
+                fi.Glyph = glyph;
+        }
+
+        internal void UpdateCustomServerTab(string id, string name, string glyph, string url)
+        {
+            var navItem = NavView.MenuItems
+                .OfType<NavigationViewItem>()
+                .FirstOrDefault(i => i.Tag?.ToString() == id);
+            if (navItem is not null)
+            {
+                navItem.Content = name;
+                if (navItem.Icon is FontIcon fi)
+                    fi.Glyph = glyph;
+            }
+
+            // Cập nhật URL cho WebView nếu thay đổi
+            if (_customPages.TryGetValue(id, out var page))
+                page.NavigateTo(url);
+        }
+
+        internal async void NavigateToSettings()
+        {
+            NavView.SelectedItem = NavView.SettingsItem;
+            await SwitchTab(TabSettings);
+        }
+
+        internal async void NavigateToTab(string appId)
+        {
+            string? tag = _tabs.FirstOrDefault(kv => kv.Value.AppId == appId).Key;
+            if (tag is null) return;
+
+            var navItem = NavView.MenuItems
+                .OfType<NavigationViewItem>()
+                .FirstOrDefault(i => i.Tag?.ToString() == tag);
+
+            if (navItem is not null)
+                NavView.SelectedItem = navItem;
+
+            await SwitchTab(tag);
+        }
         #endregion
 
         #region Theme
